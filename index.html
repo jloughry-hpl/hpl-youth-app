@@ -918,16 +918,6 @@ function viewProfile(){
     <div class="section-lbl">Test Results — Week ${aw.week} · tap for the breakdown</div>
     ${resultsList(p, weekIdx())}
 
-    <div class="section-lbl">Rapsodo Baseline — Week ${aw.week}</div>
-    <button class="drill-card" onclick="openRapsodo()">
-      <div class="dc-top">
-        <div class="dc-ic">R</div>
-        <div class="dc-name"><h4>Rapsodo Assessment</h4>
-          <div class="st">${rap?('Max EV '+aw.maxEV+' mph · Hard-hit '+rap.pct+'%'):(p.age<=8?'2 rounds (under-8) · auto-pull':'3 rounds of 8 · auto-pull')}</div></div>
-        <span class="lvl-badge l2">EV · Dist</span>
-      </div>
-    </button>
-
     <div class="section-lbl">Drill Tracking — Week ${aw.week}</div>
     ${drillCards}
     <div style="height:24px"></div>
