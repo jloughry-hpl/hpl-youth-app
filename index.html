@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HPL Youth — Player Development App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Semi+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,600&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#0a0b0a; --panel:#141614; --panel-2:#1b1e1b; --line:#2a2e2a;
+    --green:#83f52c; --green-deep:#5bc70e; --white:#fff; --grey:#9aa39a; --grey-d:#5c615c;
+    --red:#e23b3b; --blue:#3d7bff; --amber:#ffb020;
+    --shadow:0 18px 40px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Barlow',system-ui,sans-serif;background:#050605;color:var(--white);
+    min-height:100vh;display:flex;justify-content:center;padding:22px 12px 60px}
+  .display{font-family:'Anton',sans-serif;font-style:italic;text-transform:uppercase;line-height:.95}
+  .cond{font-family:'Barlow Semi Condensed',sans-serif}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select{font-family:inherit}
+
+  /* device frame */
+  .device{width:392px;max-width:100%;background:var(--black);border-radius:44px;padding:12px;
+    box-shadow:var(--shadow),0 0 0 2px #1c1f1c,0 0 0 10px #0c0d0c;position:relative}
+  .device::before{content:"";position:absolute;top:22px;left:50%;transform:translateX(-50%);
+    width:120px;height:26px;background:#000;border-radius:16px;z-index:30}
+  .viewport{background:
+      radial-gradient(900px 380px at 50% -12%, rgba(131,245,44,.08), transparent 60%),#080908;
+    border-radius:34px;overflow:hidden;height:812px;position:relative;border:1px solid var(--line);
+    display:flex;flex-direction:column}
+  .scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+  .scroll::-webkit-scrollbar{width:0}
+
+  /* shared header */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:40px 18px 12px;position:relative;z-index:5}
+  .brand{display:flex;align-items:center;gap:9px}
+  .badge{width:34px;height:34px;border-radius:50%;flex:0 0 auto;
+    background:radial-gradient(circle at 50% 40%,#fff 0 42%,#0a0b0a 43% 100%);
+    border:2px solid var(--green);display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(131,245,44,.4)}
+  .badge span{font-family:'Anton';font-style:italic;color:var(--green-deep);font-size:15px}
+  .brand h1{font-family:'Anton';font-style:italic;font-size:18px;letter-spacing:.4px}
+  .brand h1 em{color:var(--green);font-style:normal}
+  .hpl-logo{flex:0 0 auto;filter:drop-shadow(0 0 5px rgba(131,245,44,.45))}
+  .logo-wrap{display:flex;justify-content:center;margin:0 auto 18px;filter:drop-shadow(0 0 18px rgba(131,245,44,.4))}
+  .icon-btn{width:38px;height:38px;border-radius:11px;background:var(--panel);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;color:#fff}
+  .icon-btn svg{width:18px;height:18px}
+  .back{display:flex;align-items:center;gap:7px;color:#fff;font-family:'Barlow Semi Condensed';font-weight:700;
+    text-transform:uppercase;letter-spacing:1px;font-size:13px}
+  .back svg{width:18px;height:18px;color:var(--green)}
+  .pad{padding:4px 16px 40px}
+
+  /* login */
+  .login{height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 30px;text-align:center}
+  .login .logo{width:96px;height:96px;border-radius:50%;margin:0 auto 20px;
+    background:radial-gradient(circle at 50% 40%,#fff 0 44%,#0a0b0a 45% 100%);border:3px solid var(--green);
+    display:flex;align-items:center;justify-content:center;box-shadow:0 0 26px rgba(131,245,44,.4)}
+  .login .logo span{font-family:'Anton';font-style:italic;font-size:40px;color:var(--green-deep)}
+  .login h2{font-family:'Anton';font-style:italic;font-size:30px;line-height:.95}
+  .login h2 em{color:var(--green);font-style:normal}
+  .login p.sub{color:var(--grey);font-size:13px;margin:8px 0 26px;letter-spacing:.3px}
+  .field{text-align:left;margin-bottom:14px}
+  .field label{display:block;font-family:'Barlow Semi Condensed';font-weight:700;text-transform:uppercase;
+    letter-spacing:1px;font-size:11px;color:var(--grey);margin-bottom:6px}
+  .field input,.field select{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:13px 14px;font-size:15px;color:#eef;font-weight:500}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--green)}
+  .btn{background:linear-gradient(180deg,var(--green),var(--green-deep));color:#0a0b0a;border-radius:13px;
+    padding:15px;width:100%;font-family:'Anton';font-style:italic;font-size:17px;letter-spacing:.5px;
+    text-transform:uppercase;box-shadow:0 10px 22px rgba(131,245,44,.3);margin-top:6px}
+  .btn.ghost{background:var(--panel);color:#fff;border:1px solid var(--line);box-shadow:none}
+  .btn.sm{padding:11px;font-size:14px}
+  .role-switch{display:flex;gap:8px;margin-bottom:22px;background:var(--panel);border:1px solid var(--line);
+    border-radius:13px;padding:5px}
+  .role-switch button{flex:1;padding:10px;border-radius:9px;font-family:'Barlow Semi Condensed';font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;font-size:12px;color:var(--grey)}
+  .role-switch button.on{background:var(--green);color:#0a0b0a}
+  .hint{font-size:11px;color:var(--grey-d);margin-top:16px;line-height:1.5}
+  .hint code{color:var(--green);background:rgba(131,245,44,.08);padding:1px 5px;border-radius:5px}
+
+  /* sport toggle */
+  .sport-toggle{display:flex;gap:8px;margin:2px 16px 4px;background:var(--panel);border:1px solid var(--line);
+    border-radius:13px;padding:5px}
+  .sport-toggle button{flex:1;padding:11px;border-radius:9px;font-family:'Barlow Semi Condensed';font-weight:700;
+    text-transform:uppercase;letter-spacing:.6px;font-size:13px;color:var(--grey);display:flex;align-items:center;
+    justify-content:center;gap:7px}
+  .sport-toggle button.on{background:var(--green);color:#0a0b0a}
+  .sport-toggle button svg{width:16px;height:16px}
+
+  .hello{padding:8px 2px 6px}
+  .hello p{color:var(--grey);font-size:13px;font-weight:500}
+  .hello h2{font-family:'Anton';font-style:italic;font-size:25px;margin-top:2px}
+  .hello h2 em{color:var(--green);font-style:normal}
+
+  .searchbar{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);
+    border-radius:13px;padding:12px 13px;margin:10px 0 6px;color:var(--grey)}
+  .searchbar svg{width:16px;height:16px;flex:0 0 auto}
+  .searchbar input{flex:1;background:none;border:none;color:#fff;font-size:14px}
+  .searchbar input:focus{outline:none}
+  .searchbar input::placeholder{color:var(--grey-d)}
+
+  .list-head{display:flex;justify-content:space-between;align-items:baseline;margin:16px 2px 10px}
+  .list-head .lbl{font-family:'Barlow Semi Condensed';font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+    font-size:12px;color:var(--grey)}
+  .list-head .cnt{color:var(--green);font-weight:700;font-size:12px}
+
+  .p-card{display:flex;align-items:center;gap:13px;background:var(--panel);border:1px solid var(--line);
+    border-left:3px solid var(--green);border-radius:16px;padding:12px;margin-bottom:10px;width:100%;text-align:left}
+  .p-photo{width:54px;height:54px;border-radius:13px;flex:0 0 auto;object-fit:cover;border:2px solid #303430;background:#222}
+  .p-info{flex:1;min-width:0}
+  .p-info h3{font-family:'Barlow Semi Condensed';font-weight:700;font-size:17px;line-height:1.1}
+  .p-info .meta{color:var(--grey);font-size:12px;font-weight:500;margin-top:2px}
+  .hand{width:29px;height:29px;border-radius:9px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    font-family:'Anton';font-style:italic;font-size:13px;background:rgba(131,245,44,.12);color:var(--green);
+    border:1px solid rgba(131,245,44,.4)}
+  .hand.sw{background:rgba(226,59,59,.12);color:#ff7b6b;border-color:rgba(226,59,59,.4)}
+  .chev{color:#4a4f4a;flex:0 0 auto}
+
+  .fab{position:absolute;bottom:80px;right:18px;width:56px;height:56px;border-radius:18px;z-index:20;
+    background:linear-gradient(180deg,var(--green),var(--green-deep));color:#0a0b0a;display:flex;align-items:center;
+    justify-content:center;font-family:'Anton';font-size:30px;box-shadow:0 10px 24px rgba(131,245,44,.4)}
+
+  .tabbar{height:66px;background:#0c0e0c;border-top:1px solid var(--line);display:flex;justify-content:space-around;
+    align-items:center;padding:0 6px 8px}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:#5a5f5a;font-size:10px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.5px;background:none}
+  .tab svg{width:21px;height:21px}
+  .tab.on{color:var(--green)}
+
+  /* profile */
+  .prof-hero{text-align:center;padding:6px 16px 0}
+  .prof-photo-wrap{position:relative;width:132px;height:132px;margin:2px auto 0}
+  .prof-photo{width:132px;height:132px;border-radius:24px;object-fit:cover;border:3px solid var(--green);
+    box-shadow:0 0 0 5px #0a0b0a,0 0 24px rgba(131,245,44,.3)}
+  .prof-hand{position:absolute;bottom:-8px;right:6px;width:38px;height:38px;border-radius:12px;display:flex;
+    align-items:center;justify-content:center;font-family:'Anton';font-style:italic;font-size:17px;
+    background:linear-gradient(180deg,var(--green),var(--green-deep));color:#0a0b0a;border:3px solid #0a0b0a}
+  .prof-name{font-family:'Anton';font-style:italic;font-size:27px;margin-top:14px;line-height:1}
+  .prof-name em{color:var(--green);font-style:normal}
+  .prof-sub{color:var(--grey);font-family:'Barlow Semi Condensed';font-weight:600;letter-spacing:.8px;
+    text-transform:uppercase;font-size:12px;margin-top:6px}
+  .prof-sub .dot{color:var(--green);margin:0 5px}
+  .stat-row{display:flex;gap:9px;padding:16px 16px 2px}
+  .stat{flex:1;background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--green);border-radius:13px;
+    padding:11px 6px;text-align:center}
+  .stat .k{font-family:'Barlow Semi Condensed';font-weight:600;color:var(--grey);text-transform:uppercase;
+    letter-spacing:.6px;font-size:9.5px}
+  .stat .v{font-family:'Anton';font-style:italic;font-size:19px;margin-top:4px}
+  .stat .v small{font-size:10px;color:var(--grey);font-family:'Barlow';font-style:normal;font-weight:600}
+
+  .detail-card{margin:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:15px;overflow:hidden}
+  .detail-card .row{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border-bottom:1px solid var(--line)}
+  .detail-card .row:last-child{border-bottom:none}
+  .detail-card .row .k{color:var(--grey);font-size:13px;font-weight:500;display:flex;align-items:center;gap:9px}
+  .detail-card .row .k svg{width:16px;height:16px;color:var(--green)}
+  .detail-card .row .v{font-family:'Barlow Semi Condensed';font-weight:700;font-size:15px}
+  .join{text-align:center;font-style:italic;color:var(--grey);font-size:12.5px;margin:2px 16px 0}
+  .join b{color:#c8ccc8;font-weight:600}
+
+  .section-lbl{font-family:'Barlow Semi Condensed';font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
+    font-size:12px;color:var(--grey);margin:22px 18px 10px;display:flex;justify-content:space-between;align-items:center}
+  .section-lbl .link{color:var(--green);font-size:11px}
+
+  /* assessment timeline */
+  .assess{display:flex;gap:9px;overflow-x:auto;padding:0 16px 4px}
+  .assess::-webkit-scrollbar{height:0}
+  .assess .a{flex:0 0 auto;width:96px;background:var(--panel);border:1px solid var(--line);border-radius:13px;
+    padding:11px 10px;text-align:center}
+  .assess .a.cur{border-color:var(--green);box-shadow:0 0 14px rgba(131,245,44,.2)}
+  .assess .a .wk{font-family:'Anton';font-style:italic;font-size:15px}
+  .assess .a .dt{color:var(--grey);font-size:10px;margin-top:2px}
+  .assess .a .ev{color:var(--green);font-weight:700;font-size:12px;margin-top:6px}
+
+  /* drill list on profile */
+  .drill-card{margin:0 16px 11px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px;width:calc(100% - 32px);text-align:left;display:block}
+  .drill-card .dc-top{display:flex;align-items:center;gap:11px}
+  .dc-ic{width:40px;height:40px;border-radius:11px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    background:rgba(131,245,44,.1);border:1px solid rgba(131,245,44,.3);color:var(--green);font-family:'Anton';font-style:italic;font-size:16px}
+  .dc-name{flex:1}
+  .dc-name h4{font-family:'Barlow Semi Condensed';font-weight:700;font-size:16px}
+  .dc-name .st{font-size:11.5px;color:var(--grey);margin-top:1px}
+  .lvl-badge{font-family:'Barlow Semi Condensed';font-weight:700;font-size:11px;text-transform:uppercase;
+    letter-spacing:.5px;padding:4px 9px;border-radius:8px;background:var(--panel-2);color:var(--grey);border:1px solid var(--line)}
+  .lvl-badge.l1{background:rgba(61,123,255,.14);color:#7ea8ff;border-color:rgba(61,123,255,.4)}
+  .lvl-badge.l2{background:rgba(131,245,44,.14);color:var(--green);border-color:rgba(131,245,44,.4)}
+  .lvl-badge.done{background:rgba(255,176,32,.14);color:var(--amber);border-color:rgba(255,176,32,.4)}
+  .lvl-badge.locked{background:#191b19;color:#5c615c;border-color:var(--line);display:inline-flex;align-items:center;gap:3px}
+  .lvl-badge.locked svg{width:11px;height:11px}
+  .lv-tags{display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex:0 0 auto}
+  .wk-note{margin:2px 16px 4px;font-size:11.5px;color:var(--grey);font-style:italic}
+  .wk-note b{color:var(--green);font-style:normal}
+  .assess .a{cursor:pointer;background:var(--panel);border:1px solid var(--line)}
+  .prog{height:6px;border-radius:4px;background:#22261f;margin-top:11px;overflow:hidden}
+  .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--green-deep),var(--green));border-radius:4px}
+  .prog-txt{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--grey)}
+  .prog-txt b{color:#fff}
+
+  /* drill logger */
+  .logger-head{padding:2px 16px 6px}
+  .logger-head h2{font-family:'Anton';font-style:italic;font-size:23px;line-height:1}
+  .logger-head h2 em{color:var(--green);font-style:normal}
+  .logger-head .desc{color:var(--grey);font-size:12.5px;margin-top:6px;line-height:1.45}
+  .subtabs{display:flex;gap:7px;margin:12px 16px 6px}
+  .subtabs button{flex:1;padding:9px;border-radius:10px;font-family:'Barlow Semi Condensed';font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;font-size:11.5px;color:var(--grey);background:var(--panel);border:1px solid var(--line)}
+  .subtabs button.on{background:var(--green);color:#0a0b0a;border-color:var(--green)}
+
+  .score-strip{display:flex;gap:8px;padding:8px 16px 4px}
+  .score-strip .sc{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 6px;text-align:center}
+  .score-strip .sc.pass{border-color:var(--green);box-shadow:0 0 12px rgba(131,245,44,.18)}
+  .score-strip .sc.fail{border-color:rgba(226,59,59,.5)}
+  .score-strip .sc .k{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--grey);font-weight:600}
+  .score-strip .sc .v{font-family:'Anton';font-style:italic;font-size:20px;margin-top:2px}
+  .score-strip .sc.pass .v{color:var(--green)}
+  .score-strip .sc.fail .v{color:#ff7b6b}
+
+  .swing-list{padding:8px 16px 20px}
+  .swing{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin-bottom:9px}
+  .swing.correct{border-left:3px solid var(--green)}
+  .swing.wrong{border-left:3px solid var(--red)}
+  .swing.empty{border-left:3px solid var(--line)}
+  .swing .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .swing .sh .n{font-family:'Barlow Semi Condensed';font-weight:700;font-size:13px;color:var(--grey);text-transform:uppercase;letter-spacing:.5px}
+  .swing .sh .tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:7px}
+  .swing .sh .tag.ok{background:rgba(131,245,44,.16);color:var(--green)}
+  .swing .sh .tag.no{background:rgba(226,59,59,.16);color:#ff7b6b}
+  .swing .sh .tag.round{background:var(--panel-2);color:var(--grey);border:1px solid var(--line)}
+  .swing .lab{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--grey-d);font-weight:700;margin:6px 0 5px}
+  .segrow{display:flex;flex-wrap:wrap;gap:6px}
+  .seg{padding:8px 0;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);color:var(--grey);
+    font-family:'Barlow Semi Condensed';font-weight:700;font-size:13px;text-align:center;flex:1;min-width:38px}
+  .seg.on{background:var(--green);color:#0a0b0a;border-color:var(--green)}
+  .seg.big{font-family:'Anton';font-style:italic;font-size:15px;padding:10px 0}
+  /* color chips */
+  .seg.c-red.on{background:var(--red);border-color:var(--red);color:#fff}
+  .seg.c-green.on{background:#37c837;border-color:#37c837;color:#062}
+  .seg.c-black.on{background:#000;border-color:#666;color:#fff}
+  .seg.c-blue.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .seg.swing-y.on{background:var(--green);border-color:var(--green);color:#0a0b0a}
+  .seg.take-n.on{background:var(--amber);border-color:var(--amber);color:#0a0b0a}
+  .numrow{display:flex;gap:8px;align-items:center;margin-top:4px}
+  .numrow input{flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:9px 10px;
+    color:#fff;font-size:15px;font-weight:600;width:100%}
+  .numrow input:focus{outline:none;border-color:var(--green)}
+  .numrow .u{font-size:11px;color:var(--grey);font-weight:600}
+
+  /* analysis */
+  .analysis{margin:6px 16px 16px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px}
+  .analysis h4{font-family:'Barlow Semi Condensed';font-weight:700;text-transform:uppercase;letter-spacing:1px;
+    font-size:12px;color:var(--grey);margin-bottom:12px}
+  .amx{display:flex;flex-direction:column;gap:9px}
+  .amx .arow{display:flex;align-items:center;gap:10px}
+  .amx .arow .cl{width:66px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+  .amx .arow .dot{width:13px;height:13px;border-radius:4px;flex:0 0 auto;border:1px solid #0004}
+  .amx .arow .bar{flex:1;height:9px;background:#22261f;border-radius:5px;overflow:hidden}
+  .amx .arow .bar i{display:block;height:100%;border-radius:5px}
+  .amx .arow .pc{width:56px;text-align:right;font-size:11px;color:var(--grey);font-weight:600}
+  .amx .arow .pc b{color:#fff}
+  .insight{margin:0 16px 16px;border-radius:13px;padding:12px 14px;font-size:12.5px;line-height:1.5;
+    background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.3);color:#f0d9a8}
+  .insight.good{background:rgba(131,245,44,.08);border-color:rgba(131,245,44,.3);color:#cdeeb0}
+  .insight b{color:#fff}
+
+  /* objective banner */
+  .objective{margin:8px 16px 4px;background:rgba(131,245,44,.07);border:1px solid rgba(131,245,44,.28);
+    border-radius:13px;padding:11px 13px;display:flex;gap:11px;align-items:flex-start}
+  .objective .badge-n{flex:0 0 auto;min-width:44px;text-align:center;background:var(--green);color:#0a0b0a;
+    border-radius:9px;padding:6px 4px}
+  .objective .badge-n .num{font-family:'Anton';font-style:italic;font-size:20px;line-height:1}
+  .objective .badge-n .u2{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .objective .otxt{font-size:12.5px;line-height:1.45;color:#d6e8c8}
+  .objective .otxt b{color:#fff}
+
+  /* live scoring chart pills */
+  .chart-wrap{margin:8px 16px 2px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 12px}
+  .chart-lbl{font-family:'Barlow Semi Condensed';font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+    font-size:10.5px;color:var(--grey);margin-bottom:9px;display:flex;justify-content:space-between}
+  .chart-lbl b{color:var(--green)}
+  .pills{display:flex;flex-wrap:wrap;gap:6px}
+  .pill{width:30px;height:30px;border-radius:8px;font-family:'Anton';font-style:italic;font-size:13px;
+    display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--panel-2);color:var(--grey)}
+  .pill.p-ok{background:rgba(131,245,44,.9);color:#0a0b0a;border-color:var(--green)}
+  .pill.p-no{background:rgba(226,59,59,.9);color:#fff;border-color:var(--red)}
+  .pill.p-none{background:var(--panel-2);color:#4a4f4a}
+
+  /* quick-entry buttons */
+  .seg.ok-quick{background:rgba(131,245,44,.16);border:1px solid var(--green);color:var(--green);
+    font-family:'Barlow Semi Condensed';font-weight:700;flex:0 0 auto;padding:8px 14px}
+  .swing .sh .tag{cursor:pointer;border:none}
+  .mini-correct{color:var(--green);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.4px;
+    background:rgba(131,245,44,.14);border:1px solid rgba(131,245,44,.4);border-radius:6px;padding:2px 7px}
+  .miss-note{font-size:11px;color:#f0b7b0;margin:2px 0 6px 74px;font-style:italic}
+
+  /* rapsodo cloud integration */
+  .rap-cloud{margin:8px 16px 2px;background:rgba(61,123,255,.08);border:1px solid rgba(61,123,255,.35);
+    border-radius:13px;padding:12px 13px}
+  .rap-cloud .rc-top{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .rap-cloud .rc-dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .rap-cloud .rc-top .t{font-family:'Barlow Semi Condensed';font-weight:700;font-size:13px}
+  .rap-cloud .rc-top .t b{color:#7ea8ff}
+  .rap-cloud .rc-sub{font-size:11px;color:var(--grey);margin-bottom:10px}
+  .rap-pull{width:100%;background:linear-gradient(180deg,#4d86ff,#2f63e0);color:#fff;border-radius:11px;padding:12px;
+    font-family:'Barlow Semi Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.6px;font-size:13px;
+    display:flex;align-items:center;justify-content:center;gap:8px}
+  .rap-pull svg{width:16px;height:16px}
+  .rap-pull.done{background:var(--panel);border:1px solid var(--green);color:var(--green)}
+
+  /* ===== level-up celebration ===== */
+  .reward{position:absolute;inset:0;z-index:50;overflow:hidden;
+    background:radial-gradient(120% 80% at 50% 15%, rgba(131,245,44,.22), rgba(8,9,8,.98) 60%), #060706;
+    display:flex;align-items:center;justify-content:center}
+  .rw-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .cf{position:absolute;top:-20px;border-radius:2px;opacity:.95;animation:cf-fall linear forwards}
+  @keyframes cf-fall{0%{transform:translateY(-20px) rotate(0)}100%{transform:translateY(860px) rotate(540deg)}}
+  .rw-inner{position:relative;text-align:center;padding:0 26px;width:100%}
+  .rw-burst{width:120px;height:120px;margin:0 auto 6px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle, rgba(131,245,44,.35), transparent 70%);animation:rw-pop .6s cubic-bezier(.2,1.5,.4,1) both, rw-spin 6s linear 1s infinite}
+  @keyframes rw-pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+  @keyframes rw-spin{to{transform:rotate(360deg)}}
+  .rw-great{font-family:'Anton';font-style:italic;font-size:44px;line-height:.95;color:#fff;
+    text-shadow:0 0 18px rgba(131,245,44,.6);animation:rw-drop .5s .15s both}
+  @keyframes rw-drop{0%{transform:translateY(-30px) scale(.6);opacity:0}70%{transform:translateY(6px) scale(1.05)}100%{transform:translateY(0) scale(1);opacity:1}}
+  .rw-sub{color:#cdeeb0;font-size:14px;margin-top:8px;animation:rw-fade .6s .5s both}
+  .rw-sub b{color:var(--green)}
+  @keyframes rw-fade{from{opacity:0}to{opacity:1}}
+  .rw-stars{margin:16px 0 6px;display:flex;justify-content:center;gap:10px}
+  .rw-star{font-size:40px;color:#2c3327;animation:rw-star-pop .4s both}
+  .rw-star.lit{color:var(--amber);text-shadow:0 0 16px rgba(255,176,32,.8)}
+  @keyframes rw-star-pop{0%{transform:scale(0) rotate(-40deg)}70%{transform:scale(1.3)}100%{transform:scale(1) rotate(0)}}
+  .rw-unlock{display:flex;align-items:center;justify-content:center;gap:12px;margin:20px auto 4px;
+    background:rgba(131,245,44,.1);border:1.5px solid var(--green);border-radius:16px;padding:14px 20px;max-width:290px;
+    animation:rw-unlock-in .5s 1s both}
+  @keyframes rw-unlock-in{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+  .rw-lock{color:var(--green);animation:rw-shake .5s 1.4s 2}
+  .rw-lock svg{width:30px;height:30px}
+  @keyframes rw-shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+  .rw-unlock-txt{text-align:left;line-height:1}
+  .rw-unlock-txt span{display:block;font-family:'Barlow Semi Condensed';font-weight:700;color:var(--grey);font-size:13px;letter-spacing:1px}
+  .rw-unlock-txt b{font-family:'Anton';font-style:italic;font-size:26px;color:var(--green);letter-spacing:.5px}
+  .rw-levelbar{display:flex;align-items:center;gap:8px;max-width:290px;margin:18px auto 0;animation:rw-fade .5s 1.3s both}
+  .rw-l{font-family:'Barlow Semi Condensed';font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+    padding:5px 8px;border-radius:8px;white-space:nowrap}
+  .rw-l.l-done{background:rgba(255,176,32,.16);color:var(--amber)}
+  .rw-l.l-next{background:rgba(131,245,44,.16);color:var(--green)}
+  .rw-track{flex:1;height:8px;background:#22261f;border-radius:5px;overflow:hidden}
+  .rw-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--green));border-radius:5px;
+    animation:rw-fill 1.1s 1.5s forwards}
+  @keyframes rw-fill{to{width:100%}}
+  .rw-btn{margin:26px auto 0;display:block;background:linear-gradient(180deg,var(--green),var(--green-deep));color:#0a0b0a;
+    border-radius:16px;padding:16px 34px;font-family:'Anton';font-style:italic;font-size:19px;letter-spacing:.5px;
+    box-shadow:0 10px 26px rgba(131,245,44,.4);animation:rw-fade .5s 1.7s both, rw-bob 1.6s 2.2s ease-in-out infinite}
+  @keyframes rw-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .rw-tag{margin-top:18px;font-family:'Barlow Semi Condensed';font-weight:700;letter-spacing:1.5px;font-size:10px;
+    color:var(--grey-d);text-transform:uppercase;animation:rw-fade .5s 2s both}
+
+  .save-bar{padding:10px 16px 16px}
+
+  /* parent progress cards */
+  .pp-card{margin:0 16px 12px;background:var(--panel);border:1px solid var(--line);border-radius:15px;overflow:hidden}
+  .pp-card .ph{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid var(--line)}
+  .pp-card .ph h4{font-family:'Barlow Semi Condensed';font-weight:700;font-size:15px}
+  .pp-card .pb{padding:13px 15px;display:flex;gap:16px;flex-wrap:wrap}
+  .pp-metric{min-width:70px}
+  .pp-metric .k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--grey);font-weight:600}
+  .pp-metric .v{font-family:'Anton';font-style:italic;font-size:20px;margin-top:2px}
+  .pp-metric .v.up{color:var(--green)}
+  .delta{font-size:11px;font-weight:700;margin-left:5px}
+  .delta.up{color:var(--green)} .delta.down{color:#ff7b6b}
+
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);z-index:200;pointer-events:none;
+    background:var(--green);color:#0a0b0a;font-family:'Barlow Semi Condensed';font-weight:700;padding:12px 20px;
+    border-radius:12px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.5);transition:transform .3s,opacity .3s;white-space:nowrap;
+    opacity:0;visibility:hidden}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible}
+  .muted{color:var(--grey);font-size:12px}
+  .center-note{text-align:center;color:var(--grey-d);font-size:12px;padding:30px 20px}
+
+  /* rapsodo profile numbers */
+  .rap-numbers{margin:2px 16px 10px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .rn{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px 13px}
+  .rn .k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--grey);font-weight:600}
+  .rn .v{font-family:'Anton';font-style:italic;font-size:24px;color:var(--green);margin-top:3px;line-height:1}
+  .rn .v small{font-size:12px;color:var(--grey);font-style:normal;font-family:'Barlow Semi Condensed'}
+  .rn input{width:100%;margin-top:5px;background:#0c0d0c;border:1px solid var(--line);border-radius:8px;color:#fff;padding:8px 9px;font-size:16px}
+  .btn.ghost{background:var(--panel);color:var(--grey);border:1px solid var(--line);box-shadow:none}
+
+  /* consent + waiver */
+  .consent-box{display:flex;gap:10px;align-items:flex-start;margin:6px 0 2px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 13px;text-align:left}
+  .consent-box input{width:20px;height:20px;flex-shrink:0;accent-color:var(--green);margin-top:1px}
+  .consent-box label{font-size:12px;color:var(--grey);line-height:1.45}
+  .consent-box a{color:var(--green);text-decoration:underline;cursor:pointer}
+  .waiver-modal{position:fixed;inset:0;z-index:70;background:rgba(4,5,4,.96);display:flex;flex-direction:column;padding:18px 15px;max-width:430px;margin:0 auto}
+  .waiver-modal .wm-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 17px;overflow-y:auto;flex:1;text-align:left}
+  .waiver-modal h3{font-family:'Anton';font-style:italic;font-size:22px;margin-bottom:4px;color:#fff}
+  .waiver-modal .wm-meta{font-size:11px;color:var(--grey-d);margin-bottom:10px}
+  .waiver-modal h4{font-family:'Barlow Semi Condensed';font-weight:700;font-size:13.5px;margin:14px 0 4px;color:var(--green);text-transform:uppercase;letter-spacing:.4px}
+  .waiver-modal p{font-size:12.5px;color:#cfcfcf;line-height:1.55;margin-bottom:8px}
+
+  /* ==========================================================
+     DESKTOP / LAPTOP LAYOUT — fill the screen (phone frame only on phones)
+     ========================================================== */
+  @media (min-width:900px){
+    body{padding:0;display:block;background:
+      radial-gradient(1400px 620px at 50% -12%, rgba(131,245,44,.05), transparent 60%), #050605;}
+    .device{width:100%;max-width:100%;height:100vh;border-radius:0;padding:0;box-shadow:none;background:transparent}
+    .device::before{display:none}                 /* hide the phone notch */
+    .viewport{height:100vh;border-radius:0;border:none;
+      background:radial-gradient(1500px 560px at 50% -12%, rgba(131,245,44,.06), transparent 55%), #080908}
+
+    /* center all content in a wide, comfortable column */
+    :root{--maxw:1180px}
+    .topbar{padding:22px max(24px, calc((100% - var(--maxw))/2)) 14px}
+    .scroll{padding-left:max(24px, calc((100% - var(--maxw))/2));
+            padding-right:max(24px, calc((100% - var(--maxw))/2))}
+    .pad{padding-left:0;padding-right:0}
+    /* neutralize the fixed 16px side margins so the centered column governs width */
+    .sport-toggle,.stat-row,.detail-card,.drill-card,.section-lbl,.rap-numbers,.assess,
+    .wk-note,.prof-hero,.hello,.searchbar,.list-head,.join,.pp-card,.rap-cloud,.score-strip,
+    .save-bar,.logger-head,.miss,.numrow{margin-left:0;margin-right:0}
+    .drill-card{width:100%}
+
+    /* roster becomes a responsive multi-column grid */
+    #rosterList{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+    #rosterList .p-card{margin-bottom:0}
+
+    /* rapsodo numbers: 4 across on desktop */
+    .rap-numbers{grid-template-columns:repeat(4,1fr)}
+
+    /* profile hero + detail: two-column feel on wide screens */
+    .stat-row{gap:14px}
+    .detail-card{max-width:none}
+
+    /* bottom nav spans the same column, tabs left-aligned like a web app */
+    .tabbar{padding-left:max(24px, calc((100% - var(--maxw))/2));
+            padding-right:max(24px, calc((100% - var(--maxw))/2));
+            justify-content:flex-start;gap:6px}
+    .tab{max-width:130px;flex:0 0 auto;padding:0 18px}
+
+    /* keep login + add-forms readable, not stretched */
+    .login{max-width:460px;margin:0 auto}
+    .logger-head{max-width:760px}
+  }
+
+  /* extra-wide screens: let drill loggers breathe in two columns */
+  @media (min-width:1200px){
+    .swing-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  }
+</style>
+</head>
+<body>
+  <div class="device"><div class="viewport" id="vp"></div></div>
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ===== SUPABASE CLOUD LAYER ===== */
+const SB_URL="https://evoahwtitcyfbjgiaxkf.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2b2Fod3RpdGN5ZmJqZ2lheGtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDk5NDIsImV4cCI6MjA5ODgyNTk0Mn0.zby-k9XX-hKkbGnTb8hLaLr9IK7vAELbTyWuIlAdggI";
+const SBc = (window.supabase&&window.supabase.createClient)? window.supabase.createClient(SB_URL,SB_KEY) : null;
+var AUTH=null, authMode='login', signupRole='parent';
+var consentAgreed=false, RAPE=null;
+var CONSENT_VERSION='v1';
+/* ===== Parental Consent & Liability Waiver (shown at parent sign-up) ===== */
+var WAIVER_HTML = `
+  <h3>Parental Consent &amp; Liability Waiver</h3>
+  <div class="wm-meta">HPL Youth · Hitting Performance Lab · Version v1 · Effective 2026</div>
+  <p>Please read this agreement carefully before creating an account. By checking the box on the sign-up screen, you (the parent or legal guardian) agree to the terms below on behalf of yourself and your child.</p>
+
+  <h4>1. Who this covers</h4>
+  <p>You confirm that you are the parent or legal guardian of the child you are enrolling, that the child is under 13 years of age, and that you have the authority to consent on the child's behalf.</p>
+
+  <h4>2. Consent to collect your child's data (COPPA)</h4>
+  <p>The Children's Online Privacy Protection Act (COPPA) requires verifiable parental consent before an online service collects personal information from a child under 13. By agreeing, you give HPL Youth permission to collect and use the following about your child: name, age/birthdate, height, weight, batting hand, an optional photo you upload, and hitting-performance data such as exit velocity, distance, and drill results measured during training (including data from measurement devices such as Rapsodo).</p>
+  <p>We use this information only to track and support your child's athletic development, to show progress to you and your child's HPL coaches, and to operate the app. We do not sell your child's personal information or use it for third-party advertising.</p>
+
+  <h4>3. Your rights as a parent</h4>
+  <p>You may review the personal information we have collected about your child, ask us to correct or delete it, and withdraw your consent at any time by contacting HPL Youth. If you withdraw consent, we will stop collecting new information from your child and will delete existing information within a reasonable period, except where we must keep it to meet a legal obligation.</p>
+
+  <h4>4. Assumption of risk</h4>
+  <p>You understand that baseball and softball hitting instruction involves physical activity and inherent risks, including the risk of contact with balls, bats, or equipment, and the risk of muscle, joint, or other injury. You confirm your child is physically able to participate, and you knowingly accept these risks.</p>
+
+  <h4>5. Release of liability</h4>
+  <p>To the fullest extent permitted by law, you release and hold harmless HPL Youth, Hitting Performance Lab, and their coaches, staff, and facilities from claims for injury, loss, or damage arising out of your child's participation in training, except for injury or loss caused by gross negligence or intentional misconduct. This release does not waive any rights that cannot be waived under applicable law.</p>
+
+  <h4>6. Media use (optional)</h4>
+  <p>Any photo you choose to upload is used inside the app to identify your child on their profile. We will not publish your child's photo publicly or in marketing without your separate, specific permission.</p>
+
+  <h4>7. Emergency care</h4>
+  <p>In the event of an injury during training and if you cannot be reached, you authorize HPL staff to seek appropriate emergency medical care for your child. You are responsible for any resulting medical costs.</p>
+
+  <h4>8. Agreement</h4>
+  <p>By checking the consent box and creating an account, you acknowledge that you have read and understood this agreement, that you are agreeing to it voluntarily, and that it is legally binding. We record the date and version of the agreement you accepted. Questions? Contact HPL Youth at info@hpllex.com.</p>
+`;
+function openWaiver(){
+  if(document.getElementById('waiverModal')) return;
+  var host=document.getElementById('vp')||document.body;
+  var d=document.createElement('div'); d.className='waiver-modal'; d.id='waiverModal';
+  d.innerHTML='<div class="wm-card">'+WAIVER_HTML+'</div>'+
+    '<button class="btn" style="margin-top:12px" onclick="closeWaiver()">Close</button>';
+  host.appendChild(d);
+}
+function closeWaiver(){ var d=document.getElementById('waiverModal'); if(d) d.remove(); }
+async function cloudInit(){
+  if(!SBc){ DB.view='login'; render(); return; }
+  try{ const {data}=await SBc.auth.getSession();
+    if(data&&data.session&&data.session.user){ await enterApp(data.session.user); return; }
+  }catch(e){ console.warn(e); }
+  DB.view='login'; render();
+}
+async function enterApp(user){
+  let prof=null;
+  try{ const r=await SBc.from('profiles').select('role,org_id,full_name,email').eq('id',user.id).single(); prof=r.data; }catch(e){ console.warn('profile',e); }
+  AUTH={ id:user.id, email:user.email, role:(prof&&prof.role)||'parent', org_id:(prof&&prof.org_id)||null, name:(prof&&prof.full_name)||user.email };
+  DB.user={ role:AUTH.role, email:AUTH.email, name:AUTH.name, org_id:AUTH.org_id };
+  DB.players=await cloudLoadPlayers();
+  if(AUTH.role==='coach'||AUTH.role==='admin'){ DB.view='roster'; DB.ctx={}; render(); }
+  else{ const kid=DB.players[0];
+    if(kid){ DB.sport=kid.sport; DB.view='parentHome'; DB.ctx={playerId:kid.id}; render(); }
+    else{ NEWP={first:'',last:'',birthdate:'',height:'',weight:'',hand:'R',sport:'baseball'}; DB.view='addPlayer'; render(); }
+  }
+}
+async function cloudLoadPlayers(){
+  try{ const {data,error}=await SBc.from('players').select('id,state').order('created_at');
+    if(error){ console.warn(error); return []; }
+    return (data||[]).filter(r=>r&&r.state).map(r=>Object.assign({},r.state,{id:r.id}));
+  }catch(e){ console.warn(e); return []; }
+}
+async function cloudSavePlayer(p){
+  if(!SBc||!p||!AUTH) return;
+  const row={ id:p.id, org_id:AUTH.org_id, first_name:p.first, last_name:p.last, sport:p.sport,
+    birthdate:p.birthdate||'2013-01-01', bats:p.hand||'R', weight_lb:(+p.weight)||null, max_ev:(+p.maxEV)||0, state:p };
+  try{ const {error}=await SBc.from('players').upsert(row); if(error){ console.warn(error); toast('Save failed: '+(error.message||'')); } }
+  catch(e){ console.warn(e); toast('Save failed'); }
+}
+async function cloudAddChild(p){
+  if(!SBc||!AUTH) return;
+  const row={ id:p.id, org_id:AUTH.org_id||null, first_name:p.first, last_name:p.last, sport:p.sport,
+    birthdate:p.birthdate||'2013-01-01', bats:p.hand||'R', weight_lb:(+p.weight)||null, max_ev:(+p.maxEV)||0, state:p };
+  const {error}=await SBc.from('players').insert(row);
+  if(error){ toast('Save failed: '+(error.message||'')); return; }
+  try{ await SBc.from('guardians').insert({player_id:p.id, parent_id:AUTH.id}); }catch(e){ console.warn('link',e); }
+  // COPPA verifiable parental consent audit record (one per child)
+  try{ await SBc.from('consents').insert({player_id:p.id, parent_id:AUTH.id, status:'granted',
+    method:'app_checkbox_'+CONSENT_VERSION, scope_collect:true, scope_share:true,
+    granted_at:new Date().toISOString()}); }catch(e){ console.warn('consent',e); }
+}
+var AVATAR="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23222'/%3E%3Ccircle cx='50' cy='38' r='17' fill='%23484'/%3E%3Cpath d='M22 86c0-16 12-25 28-25s28 9 28 25' fill='%23484'/%3E%3C/svg%3E";
+function handlePhoto(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=function(e){ const img=new Image(); img.onload=function(){
+    const c=document.createElement('canvas'); const max=420; let w=img.width,h=img.height;
+    if(w>h){ if(w>max){ h=Math.round(h*max/w); w=max; } } else { if(h>max){ w=Math.round(w*max/h); h=max; } }
+    c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
+    NEWP.photo=c.toDataURL('image/jpeg',0.72); render();
+  }; img.src=e.target.result; };
+  rd.readAsDataURL(f);
+}
+
+/* ============================================================
+   HPL YOUTH — Player Development Prototype
+   Single-file, in-memory. Coach/admin + Parent roles.
+   ============================================================ */
+
+/* ---------- pure scoring helpers (unit-testable) ---------- */
+function pct(n,d){ return d>0 ? Math.round((n/d)*100) : 0; }
+function isHardHit(ev, maxEV){ return maxEV>0 && ev >= 0.8*maxEV; }
+function rapsodoStats(swings){ // swings: [{ev,dist}]
+  const evs=swings.filter(s=>s.ev>0).map(s=>s.ev);
+  const ds=swings.filter(s=>s.dist>0).map(s=>s.dist);
+  if(!evs.length) return {n:0,avgEV:0,maxEV:0,avgDist:0,maxDist:0,hardHitPct:0};
+  const maxEV=Math.max(...evs);
+  const hh=evs.filter(e=>e>=0.8*maxEV).length;
+  return {
+    n:evs.length,
+    avgEV:+(evs.reduce((a,b)=>a+b,0)/evs.length).toFixed(1),
+    maxEV:maxEV,
+    avgDist: ds.length? Math.round(ds.reduce((a,b)=>a+b,0)/ds.length):0,
+    maxDist: ds.length? Math.max(...ds):0,
+    hardHitPct: pct(hh,evs.length)
+  };
+}
+/* accuracy over swings where a correctness flag is set */
+function accuracy(swings, isCorrect){
+  const done=swings.filter(s=>s._done);
+  const c=done.filter(isCorrect).length;
+  return {done:done.length, correct:c, pct:pct(c,done.length)};
+}
+
+/* ---------- drill catalog ---------- */
+const DRILLS = {
+  colorBalls:{ name:'Color Balls', icon:'C',
+    desc:'Recognize and call the color hit, then add hard contact, then master pitch selection.' },
+  sevenBall:{ name:'7 Ball', icon:'7',
+    desc:'Read the ball’s depth over the plate (1–7), then add zone discipline and hard contact.' },
+  threes:{ name:'Three · Three · Three', icon:'3',
+    desc:'Hit 3 ground balls, 3 line drives, and 3 fly balls on command.' },
+  atw:{ name:'Around the World', icon:'W',
+    desc:'Spray the ball: 2 hits each to LF, LCF, CF, RCF, RF.' },
+};
+function maxLevel(key){ return ({colorBalls:5, sevenBall:5, threes:4, atw:2})[key] || 2; }
+const COLORS=[{k:'Red',c:'c-red'},{k:'Green',c:'c-green'},{k:'Black',c:'c-black'},{k:'Blue',c:'c-blue'}];
+const FIELDS=['LF','LCF','CF','RCF','RF'];
+const BATTED=['GB','LD','FB'];
+
+/* ---------- sample data ---------- */
+function assess(week,date,ev,drills){ return {week,date,maxEV:ev,drills:drills||{}}; }
+function dres(pct,label){ return {pct,label}; }
+var DB = {
+  user:null,
+  sport:'baseball',
+  search:'',
+  view:'login',
+  ctx:{},
+  players:[
+    { id:'p1', sport:'baseball', first:'Marcus', last:'Reyes', photo:'https://images.unsplash.com/photo-1591491634026-77cd5ef4f3f9?w=320&h=320&fit=crop',
+      birthdate:'2013-03-14', age:13, height:"5' 5\"", weight:120, hand:'S', join:'2025-04-22',
+      parent:'reyes@email.com',
+      levels:{colorBalls:1, sevenBall:1, threes:1, atw:1},
+      maxEV:68, avgEV:61, maxDist:212, avgDist:168,
+      assessments:[
+        assess(0,'2025-04-22',62,{colorBalls:dres(55,'Color Match · L1'), sevenBall:dres(65,'Number · L1'), threes:dres(50,'3·3·3 · L1'), atw:dres(35,'Around the World · L1'), rapsodo:dres(30,'Hard Hit')}),
+        assess(5,'2025-05-27',65,{colorBalls:dres(80,'Color Match · L1'), sevenBall:dres(74,'Number · L1'), threes:dres(65,'3·3·3 · L1'), atw:dres(45,'Around the World · L1'), rapsodo:dres(42,'Hard Hit')}),
+        assess(10,'2025-07-01',68,{})] },
+    { id:'p2', sport:'baseball', first:'Jake', last:'Thompson', photo:'https://images.unsplash.com/photo-1543393716-375f47996a77?w=320&h=320&fit=crop',
+      birthdate:'2013-09-02', age:12, height:"5' 2\"", weight:105, hand:'R', join:'2025-03-10',
+      parent:'thompson@email.com',
+      levels:{colorBalls:1, sevenBall:1, threes:1, atw:1}, maxEV:64, avgEV:57, maxDist:198, avgDist:154,
+      assessments:[assess(0,'2025-03-10',58), assess(5,'2025-04-14',61), assess(10,'2025-05-19',64)] },
+    { id:'p3', sport:'baseball', first:'Eli', last:'Carter', photo:'https://images.unsplash.com/photo-1519766304817-4f37bda74a26?w=320&h=320&fit=crop',
+      birthdate:'2017-06-20', age:8, height:"4' 3\"", weight:62, hand:'L', join:'2025-05-01',
+      parent:'carter@email.com',
+      levels:{colorBalls:1, sevenBall:1, threes:1, atw:1}, maxEV:44, avgEV:39, maxDist:132, avgDist:104,
+      assessments:[assess(0,'2025-05-01',40), assess(5,'2025-06-05',44)] },
+    { id:'p4', sport:'softball', first:'Ava', last:'Mitchell', photo:'https://images.unsplash.com/photo-1607923432780-7a9c30adcb72?w=320&h=320&fit=crop',
+      birthdate:'2012-11-08', age:13, height:"5' 4\"", weight:118, hand:'R', join:'2025-02-18',
+      parent:'mitchell@email.com',
+      levels:{colorBalls:1, sevenBall:1, threes:1, atw:1}, maxEV:63, avgEV:56, maxDist:191, avgDist:149,
+      assessments:[assess(0,'2025-02-18',57), assess(5,'2025-03-25',60), assess(10,'2025-04-29',63)] },
+    { id:'p5', sport:'softball', first:'Sofia', last:'Nguyen', photo:'https://images.unsplash.com/photo-1613918431703-aa50889e3be9?w=320&h=320&fit=crop',
+      birthdate:'2014-01-30', age:11, height:"5' 0\"", weight:95, hand:'L', join:'2025-04-05',
+      parent:'nguyen@email.com',
+      levels:{colorBalls:1, sevenBall:1, threes:1, atw:1}, maxEV:52, avgEV:46, maxDist:165, avgDist:128,
+      assessments:[assess(0,'2025-04-05',48), assess(5,'2025-05-10',52)] },
+  ]
+};
+
+/* ---------- utilities ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmtDate(iso){ const [y,m,d]=iso.split('-'); const mo=['January','February','March','April','May','June','July','August','September','October','November','December'][+m-1]; return `${mo} ${+d}, ${y}`; }
+function shortDate(iso){ const [y,m,d]=iso.split('-'); return `${+m}/${+d}/${y.slice(2)}`; }
+function handWord(h){ return h==='S'?'Switch Hitter': h==='L'?'Left-Handed':'Right-Handed'; }
+function playerById(id){ return DB.players.find(p=>p.id===id); }
+function curPlayer(){ return playerById(DB.ctx.playerId); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>{ t.classList.remove('show'); }, 1900); }
+function go(view,ctx={}){ DB.view=view; DB.ctx={...DB.ctx,...ctx}; render(); $('#vp').scrollTop=0; }
+
+/* icon set */
+const IC={
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>',
+  chev:'<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>',
+  ruler:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8l7-5 7 5"/></svg>',
+  weight:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  bat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v6a6 6 0 0 0 12 0V3M12 15v6M8 21h8"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10l8-6 8 6v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',
+  ball:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M6 7c3 2 9 2 12 0M6 17c3-2 9-2 12 0M12 3v18"/></svg>',
+  chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>',
+  edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  sync:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-8-5"/><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 8 5"/><path d="M21 3v5h-5M3 21v-5h5"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+};
+
+/* Exact HPL Youth badge from hpllex.com / hplyouth.com */
+var HPL_LOGO="data:image/webp;base64,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";
+function logoSVG(size){
+  return `<img class="hpl-logo" src="${HPL_LOGO}" width="${size}" height="${size}" alt="HPL Youth" style="object-fit:contain;border-radius:50%">`;
+}
+
+/* ================= VIEWS ================= */
+function render(){
+  const vp=$('#vp');
+  const v=DB.view;
+  if(v==='login') vp.innerHTML=viewLogin();
+  else if(v==='roster') vp.innerHTML=viewRoster();
+  else if(v==='profile') vp.innerHTML=viewProfile();
+  else if(v==='drill') vp.innerHTML=viewDrill();
+  else if(v==='addPlayer') vp.innerHTML=viewAddPlayer();
+  else if(v==='reward') vp.innerHTML=viewReward();
+  else if(v==='parentHome') vp.innerHTML=viewParentHome();
+  else if(v==='coaches') vp.innerHTML=viewCoaches();
+  else if(v==='results') vp.innerHTML=viewResults();
+  bindDynamic();
+  if(DB.view==='reward') startConfetti();
+}
+
+/* ---------- LOGIN ---------- */
+var loginRole='coach';
+function viewLogin(){
+  const su=authMode==='signup', coach=signupRole==='coach';
+  const action = !su ? 'doLogin()' : (coach ? "doSignup('coach')" : "doSignup('parent')");
+  const btn = !su ? 'Log In' : (coach ? 'Create Coach Account' : 'Create Parent Account');
+  return `<div class="login">
+    <div class="logo-wrap">${logoSVG(112,true)}</div>
+    <h2>HPL <em>YOUTH</em></h2>
+    <p class="sub">Hitting Performance Lab · Player Development</p>
+    <div class="role-switch">
+      <button class="${authMode==='login'?'on':''}" onclick="authMode='login';render()">Log In</button>
+      <button class="${authMode==='signup'?'on':''}" onclick="authMode='signup';render()">Sign Up</button>
+    </div>
+    ${su?`<div class="role-switch" style="margin-top:8px">
+      <button class="${signupRole==='parent'?'on':''}" onclick="signupRole='parent';render()">I'm a Parent</button>
+      <button class="${signupRole==='coach'?'on':''}" onclick="signupRole='coach';render()">I'm a Coach</button>
+    </div>`:''}
+    ${su?`<div class="field"><label>Your Name</label><input id="nm" type="text" placeholder="First Last"></div>`:''}
+    <div class="field"><label>Email</label><input id="email" type="email" placeholder="you@email.com"></div>
+    <div class="field"><label>Password</label><input id="pw" type="password" placeholder="${su?'Create a password (6+ characters)':'Your password'}"></div>
+    ${su&&coach?`<div class="field"><label>Coach Access Code</label><input id="code" type="text" placeholder="Code from HPL"></div>`:''}
+    ${su&&!coach?`<div class="consent-box">
+      <input type="checkbox" id="consent" ${consentAgreed?'checked':''} onchange="consentAgreed=this.checked">
+      <label>I am my child's parent or legal guardian and I have read and agree to the <a onclick="openWaiver()">Parental Consent &amp; Liability Waiver</a>, including consent for HPL Youth to collect and use my child's performance data (COPPA).</label>
+    </div>`:''}
+    <button class="btn" onclick="${action}">${btn}</button>
+    <div class="hint">${su?(coach?'Coaches: enter the access code HPL gave you.':'Parents: create your account, then add your player.'):'Log in to your HPL Youth account.'}</div>
+  </div>`;
+}
+async function doLogin(){
+  const email=(($('#email')&&$('#email').value)||'').trim().toLowerCase();
+  const pw=(($('#pw')&&$('#pw').value)||'');
+  if(!SBc){ toast('Cloud not reachable'); return; }
+  if(!email||!pw){ toast('Enter your email and password'); return; }
+  toast('Logging in…');
+  const {data,error}=await SBc.auth.signInWithPassword({email,password:pw});
+  if(error){ toast(error.message||'Login failed'); return; }
+  await enterApp(data.user);
+}
+async function doSignup(role){
+  const name=(($('#nm')&&$('#nm').value)||'').trim();
+  const email=(($('#email')&&$('#email').value)||'').trim().toLowerCase();
+  const pw=(($('#pw')&&$('#pw').value)||'');
+  const code=(($('#code')&&$('#code').value)||'').trim();
+  if(!SBc){ toast('Cloud not reachable'); return; }
+  if(!email||pw.length<6){ toast('Enter email and a 6+ character password'); return; }
+  if(role==='parent' && !consentAgreed){ toast('Please read and agree to the Parental Consent & Waiver'); return; }
+  toast('Creating account…');
+  const consent_at=new Date().toISOString();
+  const {data,error}=await SBc.auth.signUp({email,password:pw,options:{data:{full_name:name,role:role,code:code,
+    consent_agreed:(role==='parent'), consent_version:CONSENT_VERSION, consent_at:consent_at}}});
+  if(error){ toast(error.message||'Sign-up failed'); return; }
+  if(data.session&&data.user){ await enterApp(data.user); }
+  else{ toast('Account created. Confirm via email if asked, then log in.'); authMode='login'; render(); }
+}
+async function logout(){ try{ if(SBc) await SBc.auth.signOut(); }catch(e){} AUTH=null; DB.user=null; DB.players=[]; DB.view='login'; render(); }
+
+/* ---------- shared header ---------- */
+function topbar(right){ return `<div class="topbar">
+  <div class="brand">${logoSVG(36,false)}<h1>HPL <em>YOUTH</em></h1></div>
+  ${right||''}</div>`; }
+
+/* ---------- ROSTER (coach) ---------- */
+function viewRoster(){
+  const sp=DB.sport;
+  const term=DB.search.toLowerCase();
+  const list=DB.players.filter(p=>p.sport===sp &&
+     (`${p.first} ${p.last}`.toLowerCase().includes(term)));
+  const cards=list.map(p=>`
+    <button class="p-card" onclick="go('profile',{playerId:'${p.id}',week:0})">
+      <img class="p-photo" src="${p.photo}" alt="">
+      <div class="p-info"><h3>${esc(p.first)} ${esc(p.last)}</h3>
+        <div class="meta">${p.age} yrs · ${esc(p.height)} · ${p.weight} lbs</div></div>
+      <div class="hand ${p.hand==='S'?'sw':''}">${p.hand}</div>${IC.chev}
+    </button>`).join('') || `<div class="center-note">No ${sp} players match "${esc(DB.search)}".</div>`;
+
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="logout()" title="Log out">${IC.user}</button>`)}
+    <div class="sport-toggle">
+      <button class="${sp==='baseball'?'on':''}" onclick="DB.sport='baseball';render()">${IC.ball} Baseball</button>
+      <button class="${sp==='softball'?'on':''}" onclick="DB.sport='softball';render()">${IC.ball} Softball</button>
+    </div>
+    <div class="pad">
+      <div class="hello"><p>${esc(DB.user.name)} · Coach view</p><h2>MY <em>PLAYERS</em></h2></div>
+      <div class="searchbar">${IC.search}
+        <input id="search" placeholder="Search players by name…" value="${esc(DB.search)}" oninput="DB.search=this.value;liveRoster()">
+      </div>
+      <div class="list-head"><span class="lbl">${sp} Roster</span><span class="cnt">${list.length} PLAYER${list.length!==1?'S':''}</span></div>
+      <div id="rosterList">${cards}</div>
+    </div>
+  </div>
+  ${tabbar('roster')}`;
+}
+function liveRoster(){ // re-render only list to keep focus
+  const sp=DB.sport, term=DB.search.toLowerCase();
+  const list=DB.players.filter(p=>p.sport===sp && (`${p.first} ${p.last}`.toLowerCase().includes(term)));
+  const el=$('#rosterList'); if(!el) return;
+  el.innerHTML = list.map(p=>`
+    <button class="p-card" onclick="go('profile',{playerId:'${p.id}',week:0})">
+      <img class="p-photo" src="${p.photo}" alt="">
+      <div class="p-info"><h3>${esc(p.first)} ${esc(p.last)}</h3>
+        <div class="meta">${p.age} yrs · ${esc(p.height)} · ${p.weight} lbs</div></div>
+      <div class="hand ${p.hand==='S'?'sw':''}">${p.hand}</div>${IC.chev}
+    </button>`).join('') || `<div class="center-note">No ${sp} players match "${esc(DB.search)}".</div>`;
+  const hc=$('.list-head .cnt'); if(hc) hc.textContent=`${list.length} PLAYER${list.length!==1?'S':''}`;
+}
+
+function tabbar(active){
+  const act={roster:"go('roster')", coaches:"openCoaches()", me:"logout()"};
+  const t=(k,ic,lbl)=>`<button class="tab ${active===k?'on':''}" onclick="${act[k]||"toast('Coming soon')"}">${ic}<span>${lbl}</span></button>`;
+  return `<div class="tabbar">
+    ${t('roster',IC.home,'Roster')}${t('drills',IC.ball,'Drills')}${t('coaches',IC.user,'Coaches')}${t('me',IC.user,'Log out')}
+  </div>`;
+}
+
+/* ---------- COACHES (admin-only) ---------- */
+async function loadCoaches(){
+  if(!SBc) return [];
+  try{
+    const {data,error}=await SBc.from('profiles').select('full_name,email,role,created_at').in('role',['coach','admin']).order('created_at');
+    if(error){ console.warn('coaches',error); return []; }
+    return data||[];
+  }catch(e){ console.warn(e); return []; }
+}
+async function openCoaches(){
+  if(!(AUTH && (AUTH.role==='coach'||AUTH.role==='admin'))){ toast('Coaches only'); return; }
+  toast('Loading coaches…');
+  DB.coaches = await loadCoaches();
+  go('coaches');
+}
+function viewCoaches(){
+  if(!(AUTH && (AUTH.role==='coach'||AUTH.role==='admin'))) return viewRoster();
+  const list = DB.coaches||[];
+  const roleLabel = r => r==='admin' ? 'Head Coach / Admin' : 'Coach';
+  const cards = list.map(c=>{
+    const nm=(c.full_name||'').trim(); const initial=(nm||c.email||'?').charAt(0).toUpperCase();
+    return `<div class="p-card" style="cursor:default">
+      <div class="p-photo" style="display:flex;align-items:center;justify-content:center;background:var(--panel-2);color:var(--green);font-family:'Anton';font-style:italic;font-size:22px">${esc(initial)}</div>
+      <div class="p-info"><h3>${esc(nm||'(no name set)')}</h3>
+        <div class="meta">${esc(c.email||'')}</div></div>
+      <div class="hand" style="background:rgba(131,245,44,.14);color:var(--green);font-size:9px;padding:5px 8px;width:auto;border-radius:8px">${roleLabel(c.role)}</div>
+    </div>`;
+  }).join('') || `<div class="center-note">No coaches yet.</div>`;
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="go('roster')">${IC.back}</button>`)}
+    <div class="pad">
+      <div class="hello"><p>Admin only · not visible to parents</p><h2>OUR <em>COACHES</em></h2></div>
+      <div class="list-head"><span class="lbl">Coaches &amp; Admins</span><span class="cnt">${list.length} TOTAL</span></div>
+      ${cards}
+      <div style="height:20px"></div>
+    </div>
+  </div>
+  ${tabbar('coaches')}`;
+}
+
+/* ---------- PROFILE (coach) ---------- */
+function levelBadge(lv){ return `<span class="lvl-badge l2">Level ${lv}</span>`; }
+function weekIdx(){ const p=curPlayer(); const n=p.assessments.length; let i=DB.ctx.week; if(i==null||i>=n||i<0) i=0; return i; }
+function curAssess(){ return curPlayer().assessments[weekIdx()]; }
+function viewProfile(){
+  const p=curPlayer();
+  const aw=curAssess();
+  const drillCards=Object.keys(DRILLS).map(k=>{
+    const d=DRILLS[k]; const lv=p.levels[k];
+    const res=(aw.drills[k]||{});
+    const prog=res.pct!=null?res.pct:0;
+    const mx=maxLevel(k); const curLv=Math.min(lv,mx);
+    const lvTag = `<span class="lvl-badge l2">Level ${curLv} / ${mx}</span>`;
+    return `<button class="drill-card" onclick="openDrill('${k}')">
+      <div class="dc-top">
+        <div class="dc-ic">${d.icon}</div>
+        <div class="dc-name"><h4>${d.name}</h4>
+          <div class="st">${res.pct!=null?('Wk '+aw.week+': '+res.pct+'% · '+res.label):'Not yet tested this block'}</div></div>
+        <div class="lv-tags">${lvTag}</div>
+      </div>
+      <div class="prog"><i style="width:${Math.min(prog,100)}%"></i></div>
+      <div class="prog-txt"><span>Working on Level ${curLv}</span><span><b>${prog}%</b> ${res.pct!=null?'':'· tap to record'}</span></div>
+    </button>`;
+  }).join('');
+
+  const timeline=p.assessments.map((a,i)=>`
+    <button class="a ${i===weekIdx()?'cur':''}" onclick="go('profile',{week:${i}})">
+      <div class="wk">WK ${a.week}</div><div class="dt">${shortDate(a.date)}</div>
+      <div class="ev">${a.maxEV||'—'} mph</div></button>`).join('');
+  const rap=aw.drills.rapsodo;
+
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="go('roster')">${IC.back}</button>`)}
+    <div class="prof-hero">
+      <div class="prof-photo-wrap"><img class="prof-photo" src="${p.photo}" alt="">
+        <div class="prof-hand">${p.hand}</div></div>
+      <div class="prof-name">${esc(p.first.toUpperCase())} <em>${esc(p.last.toUpperCase())}</em></div>
+      <div class="prof-sub">${handWord(p.hand)} <span class="dot">•</span> ${p.age}U ${p.sport}</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="k">Height</div><div class="v">${esc(p.height)}</div></div>
+      <div class="stat"><div class="k">Weight</div><div class="v">${p.weight}<small> lb</small></div></div>
+      <div class="stat"><div class="k">Max EV</div><div class="v" style="color:var(--green)">${p.maxEV}<small> mph</small></div></div>
+      <div class="stat"><div class="k">Bats</div><div class="v" style="color:var(--green)">${p.hand}</div></div>
+    </div>
+    <div class="detail-card">
+      <div class="row"><div class="k">${IC.cal} Birthdate</div><div class="v">${fmtDate(p.birthdate)}</div></div>
+      <div class="row"><div class="k">${IC.ruler} Height</div><div class="v">${esc(p.height)}</div></div>
+      <div class="row"><div class="k">${IC.weight} Weight</div><div class="v">${p.weight} lbs</div></div>
+      <div class="row"><div class="k">${IC.bat} Hits</div><div class="v" style="color:var(--green)">${handWord(p.hand)}</div></div>
+    </div>
+    <p class="join"><em>Training with HPL Youth since <b>${fmtDate(p.join)}</b></em></p>
+
+    ${rapNumbersCard(p)}
+
+    <div class="section-lbl">Assessment Blocks — tap a week <span class="link" onclick="newAssessment()">+ New</span></div>
+    <div class="assess">${timeline}</div>
+    <div class="wk-note">Viewing <b>Week ${aw.week}</b> · ${shortDate(aw.date)}. Anything you record saves to this block.</div>
+
+    <div class="section-lbl">Test Results — Week ${aw.week} · tap for the breakdown</div>
+    ${resultsList(p, weekIdx())}
+
+    <div class="section-lbl">Rapsodo Baseline — Week ${aw.week}</div>
+    <button class="drill-card" onclick="openRapsodo()">
+      <div class="dc-top">
+        <div class="dc-ic">R</div>
+        <div class="dc-name"><h4>Rapsodo Assessment</h4>
+          <div class="st">${rap?('Max EV '+aw.maxEV+' mph · Hard-hit '+rap.pct+'%'):(p.age<=8?'2 rounds (under-8) · auto-pull':'3 rounds of 8 · auto-pull')}</div></div>
+        <span class="lvl-badge l2">EV · Dist</span>
+      </div>
+    </button>
+
+    <div class="section-lbl">Drill Tracking — Week ${aw.week}</div>
+    ${drillCards}
+    <div style="height:24px"></div>
+  </div>`;
+}
+function openDrill(k){ const p=curPlayer(); const lv=Math.min(p.levels[k],maxLevel(k)); startSession(k,lv); go('drill',{drillKey:k, level:lv}); }
+function openRapsodo(){ startSession('rapsodo',1); go('drill',{drillKey:'rapsodo',level:1}); }
+
+/* ---------- Rapsodo numbers on the profile (coach-editable) ---------- */
+function rapStatTile(k,v,unit){ return `<div class="rn"><div class="k">${k}</div><div class="v">${v?v:'—'}<small> ${unit}</small></div></div>`; }
+function rapNumbersCard(p){
+  const coach = AUTH && (AUTH.role==='coach'||AUTH.role==='admin');
+  if(RAPE){
+    return `<div class="section-lbl">Rapsodo Numbers</div>
+    <div class="rap-numbers">
+      <div class="rn"><div class="k">Max Exit Velo</div><input type="number" inputmode="decimal" value="${RAPE.maxEV}" oninput="RAPE.maxEV=this.value" placeholder="mph"></div>
+      <div class="rn"><div class="k">Avg Exit Velo</div><input type="number" inputmode="decimal" value="${RAPE.avgEV}" oninput="RAPE.avgEV=this.value" placeholder="mph"></div>
+      <div class="rn"><div class="k">Max Distance</div><input type="number" inputmode="decimal" value="${RAPE.maxDist}" oninput="RAPE.maxDist=this.value" placeholder="ft"></div>
+      <div class="rn"><div class="k">Avg Distance</div><input type="number" inputmode="decimal" value="${RAPE.avgDist}" oninput="RAPE.avgDist=this.value" placeholder="ft"></div>
+    </div>
+    <div class="save-bar" style="display:flex;gap:10px"><button class="btn" style="flex:1" onclick="saveRap()">Save Numbers</button><button class="btn ghost" style="flex:1" onclick="cancelRap()">Cancel</button></div>`;
+  }
+  return `<div class="section-lbl">Rapsodo Numbers ${coach?`<span class="link" onclick="editRap()">✎ Edit</span>`:''}</div>
+    <div class="rap-numbers">
+      ${rapStatTile('Max Exit Velo',p.maxEV,'mph')}
+      ${rapStatTile('Avg Exit Velo',p.avgEV,'mph')}
+      ${rapStatTile('Max Distance',p.maxDist,'ft')}
+      ${rapStatTile('Avg Distance',p.avgDist,'ft')}
+    </div>`;
+}
+function editRap(){ const p=curPlayer(); RAPE={ maxEV:p.maxEV||'', avgEV:p.avgEV||'', maxDist:p.maxDist||'', avgDist:p.avgDist||'' }; render(); }
+function cancelRap(){ RAPE=null; render(); }
+function saveRap(){
+  const p=curPlayer();
+  p.maxEV=+RAPE.maxEV||0; p.avgEV=+RAPE.avgEV||0; p.maxDist=+RAPE.maxDist||0; p.avgDist=+RAPE.avgDist||0;
+  const aw=curAssess(); if(aw) aw.maxEV=p.maxEV;   // keep the exit-velo trend in sync
+  RAPE=null; cloudSavePlayer(p); toast('Rapsodo numbers saved'); render();
+}
+
+/* ---------- ADD PLAYER (coach) ---------- */
+var NEWP={first:'',last:'',birthdate:'',height:'',weight:'',hand:'R'};
+function viewAddPlayer(){
+  return `<div class="scroll">
+    ${topbar(`<button class="back" onclick="logout()">${IC.back} Log out</button>`)}
+    <div class="logger-head"><h2>ADD YOUR <em>PLAYER</em></h2>
+      <div class="desc">Set up your child's profile. You're their parent/guardian on the account, and by adding them you consent to HPL Youth tracking their hitting development.</div></div>
+    <div class="pad">
+      <label style="width:120px;height:120px;margin:6px auto 20px;border-radius:22px;border:2px dashed rgba(131,245,44,.5);
+        background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--green);cursor:pointer;overflow:hidden">
+        <input type="file" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+        ${NEWP.photo?`<img src="${NEWP.photo}" style="width:100%;height:100%;object-fit:cover">`:`${IC.ball}<span style="font-family:'Barlow Semi Condensed';font-weight:700;font-size:11px;text-transform:uppercase">Add Photo</span>`}</label>
+      <div style="display:flex;gap:12px">
+        <div class="field" style="flex:1"><label>First Name</label><input id="np_first" value="${esc(NEWP.first)}" oninput="NEWP.first=this.value" placeholder="First"></div>
+        <div class="field" style="flex:1"><label>Last Name</label><input id="np_last" value="${esc(NEWP.last)}" oninput="NEWP.last=this.value" placeholder="Last"></div>
+      </div>
+      <div class="field"><label>Birthdate</label><input id="np_bd" type="date" value="${NEWP.birthdate}" oninput="NEWP.birthdate=this.value"></div>
+      <div style="display:flex;gap:12px">
+        <div class="field" style="flex:1"><label>Height</label><input id="np_h" value="${esc(NEWP.height)}" oninput="NEWP.height=this.value" placeholder="5' 2&quot;"></div>
+        <div class="field" style="flex:1"><label>Weight (lb)</label><input id="np_w" type="number" value="${NEWP.weight}" oninput="NEWP.weight=this.value" placeholder="110"></div>
+      </div>
+      <div class="field"><label>Sport</label>
+        <div class="segrow">
+          ${[['baseball','Baseball'],['softball','Softball']].map(([k,w])=>
+            `<button class="seg ${NEWP.sport===k?'on':''}" style="flex:1" onclick="NEWP.sport='${k}';render()">${w}</button>`).join('')}
+        </div></div>
+      <div class="field"><label>Hits With</label>
+        <div class="segrow">
+          ${[['R','Right'],['L','Left'],['S','Switch']].map(([k,w])=>
+            `<button class="seg big ${NEWP.hand===k?'on':''}" style="flex:1" onclick="NEWP.hand='${k}';render()">${k} · ${w}</button>`).join('')}
+        </div></div>
+      <button class="btn" style="margin-top:14px" onclick="saveNewPlayer()">Save Player</button>
+      <div style="height:20px"></div>
+    </div>
+  </div>`;
+}
+function ageFrom(iso){ if(!iso) return 12; const b=new Date(iso), n=new Date('2026-07-01'); let a=n.getFullYear()-b.getFullYear(); if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate())) a--; return a; }
+function saveNewPlayer(){
+  if(!NEWP.first||!NEWP.last){ toast('Enter first and last name'); return; }
+  const id=(self.crypto&&crypto.randomUUID)?crypto.randomUUID():('p'+Date.now());
+  const age=ageFrom(NEWP.birthdate);
+  const today=new Date().toISOString().slice(0,10);
+  const pl={ id, sport:NEWP.sport||'baseball', first:NEWP.first, last:NEWP.last,
+    photo:NEWP.photo||AVATAR,
+    birthdate:NEWP.birthdate||'2013-01-01', age, height:NEWP.height||"5' 0\"", weight:+NEWP.weight||100,
+    hand:NEWP.hand, join:today, parent:(AUTH&&AUTH.email)||'',
+    levels:{colorBalls:1,sevenBall:1,threes:1,atw:1}, maxEV:0, avgEV:0, maxDist:0, avgDist:0,
+    consent:{agreed:true, version:CONSENT_VERSION, at:new Date().toISOString()},
+    assessments:[assess(0,today,0)] };
+  DB.players.push(pl); DB.sport=pl.sport;
+  cloudAddChild(pl);
+  NEWP={first:'',last:'',birthdate:'',height:'',weight:'',hand:'R',sport:'baseball'};
+  toast(pl.first+' is all set!');
+  go('parentHome',{playerId:id});
+}
+function newAssessment(){
+  const p=curPlayer(); const last=p.assessments[p.assessments.length-1];
+  p.assessments.push(assess(last.week+5,'2026-07-01',p.maxEV));
+  cloudSavePlayer(p);
+  toast('New assessment block — Week '+(last.week+5)); render();
+}
+
+/* ================= DRILL ENGINE ================= */
+var SESSION=null;
+function startSession(key,level){
+  const p=curPlayer();
+  SESSION={ key, level, sub:0, maxEV:p.maxEV, swings:buildSwings(key,level,p), rapsodo:key==='rapsodo'?buildRapsodo(p):null };
+}
+function buildSwings(key,level,p){
+  // returns array of swing slots depending on drill+level+subdrill
+  return null; // built per-subtab lazily in viewDrill via drillModel
+}
+
+/* Each drill defines subtabs -> panels. Panel types:
+   call  = coach enters thrown value + what the kid CALLED (color/number). correct = match.
+   decide= coach enters ball (color/number) + kid SWING/TAKE. correct = matches rule.
+   spray = target is preset (goal); coach enters where it ACTUALLY went. correct = match.
+   ev flags: ev=collect exit velo, evRequired=needed to count swing, evGate=frac of max EV that
+   also gates correctness, hardHit=correct also needs >=80% max EV. */
+function drillModel(key,level){
+  const p=curPlayer(); const maxEV=p.maxEV;
+  const nums=['1','2','3','4','5','6','7'];
+  if(key==='colorBalls'){
+    if(level===1) return { subtabs:['Name the Color'], panels:[
+      {type:'call', kind:'color', count:10, options:COLORS.map(c=>c.k), colorClass:true,
+        objective:'Call the color of the ball you hit — Red, Green, Black or Blue.',
+        goal:'Get 80% correct to reach Level 2', thresholds:[{k:'Pass',v:80}]}
+    ]};
+    if(level===2) return { subtabs:['No Red'], panels:[
+      {type:'decide', kind:'color', count:10, thrownOpts:['Red','Not Red'], rule:(t)=> t==='Red'?'Take':'Swing',
+        objective:'No-Red: TAKE every red ball, swing at every other color.',
+        goal:'Get 80% correct to reach Level 3', thresholds:[{k:'Pass',v:80}]}
+    ]};
+    if(level===3) return { subtabs:['Color + 70% EV'], panels:[
+      {type:'call', kind:'color', count:10, options:COLORS.map(c=>c.k), colorClass:true, ev:true, evRequired:true, evGate:0.70, maxEV,
+        objective:'Call the color AND hit it at ≥70% of max EV. Both are required to count.',
+        goal:'Get 80% correct to reach Level 4', thresholds:[{k:'Pass',v:80}]}
+    ]};
+    if(level===4) return { subtabs:['No Red + 70% EV'], panels:[
+      {type:'decide', kind:'color', count:10, thrownOpts:['Red','Not Red'], rule:(t)=> t==='Red'?'Take':'Swing', ev:true, evGate:0.70, maxEV,
+        objective:'TAKE every red. Every non-red you swing at must be hit at ≥70% of max EV to count.',
+        goal:'Get 70% correct to reach Level 5', thresholds:[{k:'Pass',v:70}]}
+    ]};
+    return { subtabs:['Blue Only'], panels:[
+      {type:'decide', kind:'color', count:10, thrownOpts:['Blue','Not Blue'], rule:(t)=> t==='Blue'?'Swing':'Take',
+        objective:'Blue only: swing at BLUE, take every other color. Any swing at a non-blue ball is a miss.',
+        goal:'Get 80% correct to master this level', thresholds:[{k:'Pass',v:80}]}
+    ]};
+  }
+  if(key==='sevenBall'){
+    if(level===1) return { subtabs:['Number'], panels:[
+      {type:'call', kind:'number', count:10, options:nums,
+        objective:'Call the number (1–7) the ball crosses. 1 = closest to hitter, 7 = furthest.',
+        goal:'Get 80% correct to reach Level 2', thresholds:[{k:'Pass',v:80}]}
+    ]};
+    if(level===2) return { subtabs:['0-Strike'], panels:[
+      {type:'decide', kind:'number', count:10, thrownOpts:nums, rule:(t)=> ['3','4','5'].includes(t)?'Swing':'Take',
+        objective:'0-Strike count: swing only at 3-4-5, take 1, 2, 6 and 7.',
+        goal:'Get 80% correct to reach Level 3', thresholds:[{k:'Pass',v:80}]}
+    ]};
+    if(level===3) return { subtabs:['Number + 60% EV'], panels:[
+      {type:'call', kind:'number', count:10, options:nums, ev:true, evRequired:true, evGate:0.60, maxEV,
+        objective:'Call the number AND hit it at ≥60% of max EV. Both are required to count.',
+        goal:'Get 80% correct to reach Level 4', thresholds:[{k:'Pass',v:80}]}
+    ]};
+    if(level===4) return { subtabs:['0-Strike + 90% EV'], panels:[
+      {type:'decide', kind:'number', count:10, thrownOpts:nums, rule:(t)=> ['3','4','5'].includes(t)?'Swing':'Take', ev:true, evGate:0.90, maxEV,
+        objective:'0-Strike: take 1, 2, 6, 7. Every 3-4-5 you swing at must be hit at ≥90% of max EV to count.',
+        goal:'Get 80% correct to reach Level 5', thresholds:[{k:'Pass',v:80}]}
+    ]};
+    return { subtabs:['Live BP'], panels:[
+      {type:'call', kind:'number', count:10, options:nums, ev:true, evRequired:true, evGate:0.70, maxEV,
+        objective:'Live batting practice: call the number AND hit it at ≥70% of max EV. Both are required.',
+        goal:'Get 80% correct to master this level', thresholds:[{k:'Pass',v:80}]}
+    ]};
+  }
+  if(key==='threes'){
+    const seq=['GB','GB','GB','LD','LD','LD','FB','FB','FB'];
+    if(level===1) return { subtabs:['3·3·3'], panels:[
+      {type:'spray', kind:'batted', targets:seq, options:BATTED,
+        objective:'On command hit 3 ground balls, 3 line drives, then 3 fly balls.',
+        goal:'Pass at 70%', thresholds:[{k:'Pass',v:70}]}
+    ]};
+    if(level===2) return { subtabs:['3·3·3 + EV'], panels:[
+      {type:'spray', kind:'batted', targets:seq, options:BATTED, ev:true, evRequired:true, evGate:0.6, maxEV,
+        objective:'Correct batted-ball type AND hit at ≥60% of max EV on 60% of swings.',
+        goal:'Level 2 pass at 60%', thresholds:[{k:'Pass',v:60}]}
+    ]};
+    if(level===3) return { subtabs:['Small Ball · Skinny Bat'], panels:[
+      {type:'spray', kind:'batted', targets:seq, options:BATTED,
+        objective:'Same 3·3·3 — but with SMALL BALLS and a SKINNY TRAINER BAT. Hit the commanded type each swing.',
+        goal:'Get over 70% correct to reach Level 4', thresholds:[{k:'Pass',v:70}]}
+    ]};
+    return { subtabs:['3·3·3 + EV / Distance'], panels:[
+      {type:'spray', kind:'batted', targets:seq, options:BATTED, ev:true, evGate:0.75, fbDistance:150, maxEV,
+        objective:'Correct type AND: ground balls & line drives hit ≥75% of max EV; fly balls carry ≥150 ft. Over 70% of swings must clear the bar.',
+        goal:'Get over 70% correct to master (more levels coming)', thresholds:[{k:'Pass',v:70}]}
+    ]};
+  }
+  if(key==='atw'){
+    const seq=['LF','LF','LCF','LCF','CF','CF','RCF','RCF','RF','RF'];
+    if(level===1) return { subtabs:['Around the World'], panels:[
+      {type:'spray', kind:'field', targets:seq, options:FIELDS,
+        objective:'Spray 2 balls to each field: LF, LCF, CF, RCF, RF.',
+        goal:'Pass at 50%', thresholds:[{k:'Pass',v:50}]}
+    ]};
+    return { subtabs:['Around the World + EV'], panels:[
+      {type:'spray', kind:'field', targets:seq, options:FIELDS, ev:true, maxEV,
+        objective:'Spray 2 balls to each field, LF → RF. Log exit velo on every swing.',
+        goal:'Level 2 pass at 70%', thresholds:[{k:'Pass',v:70}]}
+    ]};
+  }
+  return {subtabs:['Rapsodo'],panels:[]};
+}
+
+/* per-session slot storage keyed by subtab */
+function slots(){
+  if(!SESSION._slots) SESSION._slots={};
+  const m=drillModel(SESSION.key,SESSION.level);
+  const key=SESSION.sub;
+  if(!SESSION._slots[key]){
+    const panel=m.panels[key];
+    const n = panel.count || (panel.targets?panel.targets.length:10);
+    SESSION._slots[key]=Array.from({length:n},(_,i)=>({
+      i, thrown: panel.targets?panel.targets[i]:'',
+      called:'', action:'', actual:'', ev:0, dist:0, _done:false, _ovr:null
+    }));
+  }
+  return SESSION._slots[key];
+}
+
+/* auto correctness per swing */
+function swingCorrect(panel, s){
+  if(!s._done) return false;
+  if(panel.type==='call'){
+    let ok = !!(s.thrown && s.called && s.thrown===s.called);
+    if(ok && panel.hardHit) ok = isHardHit(s.ev, panel.maxEV);
+    if(ok && panel.evGate) ok = panel.maxEV>0 && s.ev>=panel.evGate*panel.maxEV;
+    return ok;
+  }
+  if(panel.type==='decide'){
+    const want = panel.rule(s.thrown);
+    let ok = !!(s.action && s.action===want);
+    if(ok && panel.evGate && want==='Swing') ok = panel.maxEV>0 && s.ev>=panel.evGate*panel.maxEV;
+    return ok;
+  }
+  if(panel.type==='spray'){
+    let ok = s.actual===s.thrown;
+    if(ok && (panel.evGate || panel.fbDistance)){
+      if(panel.fbDistance && s.thrown==='FB') ok = (s.dist||0) >= panel.fbDistance;
+      else if(panel.evGate) ok = panel.maxEV>0 && s.ev>=panel.evGate*panel.maxEV;
+    }
+    return !!ok;
+  }
+  return false;
+}
+/* number-only match (ignores EV) — used for 7-Ball 'Number' metric + pattern */
+function nameCorrect(panel, s){
+  if(!s._done) return false;
+  if(panel.type==='call') return !!(s.thrown && s.called && s.thrown===s.called);
+  if(panel.type==='spray') return s.actual===s.thrown;
+  if(panel.type==='decide') return !!(s.action && s.action===panel.rule(s.thrown));
+  return false;
+}
+/* displayed result honours a manual coach override */
+function swingResult(panel, s){
+  if(s._ovr===true||s._ovr===false) return s._ovr;
+  return swingCorrect(panel, s);
+}
+
+/* ---------- DRILL VIEW ---------- */
+function viewDrill(){
+  if(SESSION.key==='rapsodo') return viewRapsodo();
+  const p=curPlayer();
+  const m=drillModel(SESSION.key,SESSION.level);
+  const d=DRILLS[SESSION.key];
+  const panel=m.panels[SESSION.sub];
+  const arr=slots();
+
+  const done=arr.filter(s=>s._done).length;
+  const correct=arr.filter(s=>swingResult(panel,s)).length;
+  const acc=pct(correct,done);
+
+  // score strip (thresholds + special metrics)
+  let scs = panel.thresholds.map(t=>{
+    let val=acc, lbl=t.k;
+    if(t.k==='Hard Hit'){ const hh=arr.filter(s=>s._done && isHardHit(s.ev,panel.maxEV)).length; val=pct(hh,done); }
+    if(t.k==='Number'){ val=pct(arr.filter(s=>nameCorrect(panel,s)).length,done); }
+    const passed = done>0 && val>=t.v;
+    return `<div class="sc ${done>0?(passed?'pass':'fail'):''}"><div class="k">${lbl} ≥${t.v}%</div><div class="v">${val}%</div></div>`;
+  }).join('');
+  scs = `<div class="sc"><div class="k">Logged</div><div class="v">${done}/${arr.length}</div></div>`+scs;
+
+  const rows = arr.map((s,i)=>swingRow(panel,s,i)).join('');
+  const subtabsHtml = m.subtabs.length>1 ? `<div class="subtabs">${m.subtabs.map((t,i)=>
+     `<button class="${i===SESSION.sub?'on':''}" onclick="SESSION.sub=${i};render()">${t}</button>`).join('')}</div>`:'';
+
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="go('profile')">${IC.back}</button>`)}
+    <div class="logger-head">
+      <h2>${d.name.toUpperCase()} <em>· L${SESSION.level}</em></h2>
+    </div>
+    ${subtabsHtml}
+    <div class="objective">
+      <div class="badge-n"><div class="num">${arr.length}</div><div class="u2">swings</div></div>
+      <div class="otxt"><b>${esc(panel.objective)}</b><br>${esc(panel.goal||'')}</div>
+    </div>
+    <div class="score-strip">${scs}</div>
+    ${scoreChart(panel,arr)}
+    <div class="swing-list">${rows}</div>
+    ${patternAnalysis(panel,arr)}
+    <div class="save-bar"><button class="btn" onclick="saveDrill()">Save Results to Week ${p.assessments[p.assessments.length-1].week}</button></div>
+    <div style="height:10px"></div>
+  </div>`;
+}
+
+/* live scoring chart — one pill per swing, tap to jump */
+function scoreChart(panel,arr){
+  const done=arr.filter(s=>s._done).length;
+  const correct=arr.filter(s=>swingResult(panel,s)).length;
+  const pills=arr.map((s,i)=>{ const st=!s._done?'p-none':(swingResult(panel,s)?'p-ok':'p-no');
+    return `<button class="pill ${st}" onclick="scrollToSwing(${i})">${i+1}</button>`; }).join('');
+  return `<div class="chart-wrap"><div class="chart-lbl"><span>SCORING CHART</span><span><b>${correct}</b> / ${done} correct</span></div><div class="pills">${pills}</div></div>`;
+}
+
+/* efficient recording row */
+function swingRow(panel,s,i){
+  const res = swingResult(panel,s);
+  const cls = !s._done?'empty':(res?'correct':'wrong');
+  const resTag = s._done
+    ? `<button class="tag ${res?'ok':'no'}" onclick="toggleResult(${i})">${res?'✓ Correct':'✗ Miss'}</button>`
+    : `<span class="tag round">awaiting</span>`;
+  let body='';
+
+  if(panel.type==='call'){
+    const pick=(field,val)=> panel.colorClass?segColors(i,field,val):segList(i,field,val,panel.options,'big');
+    body += `<div class="lab">${panel.colorClass?'Ball thrown (color)':'Ball crossed # (1 near → 7 far)'}</div>${pick('thrown',s.thrown)}`;
+    body += `<div class="lab">Kid called</div>${pick('called',s.called)}`;
+    if(panel.ev) body += evInput(i,s);
+  }
+  else if(panel.type==='decide'){
+    const isNum = panel.kind==='number';
+    body += `<div class="lab">${isNum?'Ball crossed # (1 near → 7 far)':'Ball thrown'}</div>${segList(i,'thrown',s.thrown,panel.thrownOpts,isNum?'big':'')}`;
+    if(s.thrown) body += `<div class="lab">Should <b style="color:var(--green)">${panel.rule(s.thrown)}</b> · kid's decision</div>`;
+    else body += `<div class="lab">Kid's decision</div>`;
+    body += `${segList(i,'action',s.action,['Swing','Take'],'',['swing-y','take-n'])}`;
+    if(panel.ev && s.action==='Swing') body += evInput(i,s);
+  }
+  else if(panel.type==='spray'){
+    body += `<div class="lab">Target — hit to <b style="color:var(--green)">${s.thrown}</b></div>`;
+    body += `<div class="lab">Actually went to</div>${segList(i,'actual',s.actual,panel.options,'')}`;
+    if(panel.fbDistance && s.thrown==='FB') body += distInput(i,s);
+    else if(panel.ev) body += evInput(i,s);
+  }
+
+  return `<div class="swing ${cls}" id="sw${i}">
+    <div class="sh"><span class="n">Swing ${i+1}</span>${resTag}</div>${body}</div>`;
+}
+
+function segColors(i,field,val){
+  return `<div class="segrow">${COLORS.map(c=>
+    `<button class="seg ${c.c} ${val===c.k?'on':''}" onclick="setField(${i},'${field}','${c.k}')">${c.k}</button>`).join('')}</div>`;
+}
+function segList(i,field,val,opts,big,extraCls){
+  return `<div class="segrow">${opts.map((o,j)=>{
+    const ec = extraCls?extraCls[j]:'';
+    return `<button class="seg ${big} ${ec} ${val===o?'on':''}" onclick="setField(${i},'${field}','${o}')">${o}</button>`;
+  }).join('')}</div>`;
+}
+function evInput(i,s){
+  return `<div class="lab" style="margin-top:8px">Exit velo (mph)</div>
+    <div class="numrow"><input type="number" inputmode="numeric" placeholder="mph" value="${s.ev||''}" onchange="setEV(${i},this.value)"><span class="u">max ${SESSION.maxEV||'—'}</span></div>`;
+}
+function distInput(i,s){
+  return `<div class="lab" style="margin-top:8px">Fly-ball distance (ft)</div>
+    <div class="numrow"><input type="number" inputmode="numeric" placeholder="ft" value="${s.dist||''}" onchange="setDist(${i},this.value)"><span class="u">need ≥150</span></div>`;
+}
+function scrollToSwing(i){ requestAnimationFrame(()=>{const e=$('#sw'+i); if(e) e.scrollIntoView({block:'center',behavior:'smooth'});}); }
+function setField(i,field,val){
+  const s=slots()[i]; s[field]=(s[field]===val?'':val); s._ovr=null; markDone(s); render(); scrollToSwing(i);
+}
+function setEV(i,v){ const s=slots()[i]; s.ev=+v||0; s._ovr=null; markDone(s); render(); }
+function setDist(i,v){ const s=slots()[i]; s.dist=+v||0; s._ovr=null; markDone(s); render(); }
+/* one-tap: mark the kid got this swing right */
+function quickCorrect(i){
+  const m=drillModel(SESSION.key,SESSION.level), panel=m.panels[SESSION.sub], s=slots()[i];
+  if(panel.type==='call'){ if(!s.thrown){ toast('Set the thrown value first'); return; } s.called=s.thrown; }
+  else if(panel.type==='spray'){ s.actual=s.thrown; }
+  else if(panel.type==='decide'){ if(!s.thrown){ toast('Set the ball first'); return; } s.action=panel.rule(s.thrown); }
+  s._ovr=null; markDone(s); render(); scrollToSwing(i);
+}
+/* manual correct/incorrect override toggle */
+function toggleResult(i){
+  const m=drillModel(SESSION.key,SESSION.level), panel=m.panels[SESSION.sub], s=slots()[i];
+  s._ovr = !swingResult(panel,s); render();
+}
+function markDone(s){
+  const m=drillModel(SESSION.key,SESSION.level), panel=m.panels[SESSION.sub];
+  if(panel.type==='call') s._done = !!(s.thrown && s.called && (!panel.evRequired || s.ev>0));
+  else if(panel.type==='decide') s._done = !!(s.thrown && s.action);
+  else if(panel.type==='spray') s._done = !!(s.actual && (!panel.evRequired || s.ev>0));
+}
+
+function colorSwatch(cat){ return ({Red:'#e23b3b',Green:'#37c837',Black:'#111',Blue:'#3d7bff','Not Red':'#5a5f5a','Not Blue':'#5a5f5a'})[cat] || 'var(--green)'; }
+
+/* compute a serializable breakdown (accuracy per thrown value + what the kid chose when wrong) */
+function computeBreakdown(panel,arr){
+  const done=arr.filter(s=>s._done);
+  let cats, thrownOf, choseOf, kindLbl, catLbl, colorCats;
+  if(panel.type==='call'){ cats=panel.options; thrownOf=s=>s.thrown; choseOf=s=>s.called;
+    kindLbl=panel.colorClass?'Color':'Number'; catLbl=panel.colorClass?'color':'number'; colorCats=!!panel.colorClass; }
+  else if(panel.type==='spray'){ cats=panel.options; thrownOf=s=>s.thrown; choseOf=s=>s.actual;
+    kindLbl='Location'; catLbl='location'; colorCats=false; }
+  else { cats=panel.thrownOpts; thrownOf=s=>s.thrown; choseOf=s=>s.action; kindLbl='Pitch'; catLbl='pitch'; colorCats=(panel.kind==='color'); }
+  const rows = cats.map(cat=>{
+    const th=done.filter(s=>thrownOf(s)===cat);
+    if(!th.length) return {cat, total:0, correct:0, pct:null, miss:{}};
+    const right=th.filter(s=>swingResult(panel,s)).length;
+    const miss={}; th.filter(s=>!swingResult(panel,s)).forEach(s=>{ const c=choseOf(s)||'no call'; miss[c]=(miss[c]||0)+1; });
+    return {cat, total:th.length, correct:right, pct:pct(right,th.length), miss};
+  });
+  let weak=null;
+  rows.forEach(r=>{ if(r.total){ if(weak===null||r.pct<weak.pct) weak={cat:r.cat, pct:r.pct}; }});
+  return {kindLbl, catLbl, colorCats, rows, weak, doneCount:done.length};
+}
+/* render a breakdown (live or saved) into the pattern + recommendation panel */
+function renderBreakdown(bd){
+  if(!bd || !bd.doneCount) return '';
+  const rows = bd.rows.map(r=>{
+    const sw = bd.colorCats?colorSwatch(r.cat):'var(--green)';
+    if(!r.total) return `<div class="arow"><div class="cl"><span class="dot" style="background:${sw}"></span>${r.cat}</div>
+      <div class="bar"><i style="width:0%"></i></div><div class="pc">—</div></div>`;
+    const barcol=r.pct>=80?'var(--green)':r.pct>=50?'var(--amber)':'var(--red)';
+    const missTxt=Object.keys(r.miss||{}).length? ('when missed, said '+Object.entries(r.miss).map(([k,v])=>`<b>${k}</b>${v>1?' ×'+v:''}`).join(', ')) : '';
+    return `<div class="arow"><div class="cl"><span class="dot" style="background:${sw}"></span>${r.cat}</div>
+      <div class="bar"><i style="width:${r.pct}%;background:${barcol}"></i></div>
+      <div class="pc"><b>${r.pct}%</b> ${r.correct}/${r.total}</div></div>
+      ${missTxt?`<div class="miss-note">↳ ${missTxt}</div>`:''}`;
+  }).join('');
+  const insight = bd.weak && bd.weak.pct<80
+    ? `<div class="insight"><b>Work on:</b> ${bd.kindLbl.toLowerCase()} <b>${bd.weak.cat}</b> — only ${bd.weak.pct}% here. Build reps around ${bd.weak.cat} and re-test next block.</div>`
+    : `<div class="insight good"><b>Looking sharp.</b> No single ${bd.catLbl} is lagging badly — keep building volume.</div>`;
+  return `<div class="analysis"><h4>${bd.kindLbl} pattern — where they struggle</h4><div class="amx">${rows}</div></div>${insight}`;
+}
+function patternAnalysis(panel,arr){ return renderBreakdown(computeBreakdown(panel,arr)); }
+
+/* metric value for a given threshold key */
+function panelMetricVal(panel, arr, tKey){
+  const done=arr.filter(s=>s._done).length;
+  if(tKey==='Hard Hit') return pct(arr.filter(s=>s._done && isHardHit(s.ev,panel.maxEV)).length, done);
+  if(tKey==='Number') return pct(arr.filter(s=>nameCorrect(panel,s)).length, done);
+  return pct(arr.filter(s=>swingResult(panel,s)).length, done);
+}
+/* a panel passes when every swing is logged and all its thresholds are met */
+function panelPasses(panel, arr){
+  const need = panel.count || (panel.targets?panel.targets.length:10);
+  if(arr.filter(s=>s._done).length < need) return false;
+  return panel.thresholds.every(t=> panelMetricVal(panel,arr,t.k) >= t.v);
+}
+/* the whole level passes when every panel in the model passes */
+function levelComplete(){
+  const m=drillModel(SESSION.key,SESSION.level);
+  return m.panels.every((panel,idx)=>{ const a=SESSION._slots&&SESSION._slots[idx]; return a && panelPasses(panel,a); });
+}
+function saveDrill(){
+  const p=curPlayer(); const m=drillModel(SESSION.key,SESSION.level), panel=m.panels[SESSION.sub];
+  const arr=slots(); const done=arr.filter(s=>s._done).length;
+  if(!done){ toast('Log at least one swing first'); return; }
+  const acc=pct(arr.filter(s=>swingResult(panel,s)).length,done);
+  const aw=curAssess();
+  aw.drills[SESSION.key]={pct:acc, label:m.subtabs[SESSION.sub]+' · L'+SESSION.level, level:SESSION.level, breakdown:computeBreakdown(panel,arr)};
+  cloudSavePlayer(p);
+  // level complete?
+  if(levelComplete() && SESSION.level===p.levels[SESSION.key] && p.levels[SESSION.key]<maxLevel(SESSION.key)){
+    p.levels[SESSION.key]=SESSION.level+1; cloudSavePlayer(p);
+    go('reward',{drill:SESSION.key, fromLevel:SESSION.level, pct:acc});
+    return;
+  }
+  // multi-panel drill: jump to the next unfinished sub-drill
+  if(m.panels.length>1){
+    for(let idx=0; idx<m.panels.length; idx++){
+      const a=SESSION._slots&&SESSION._slots[idx];
+      if(!(a && panelPasses(m.panels[idx],a))){ SESSION.sub=idx; toast('Saved. Now finish “'+m.subtabs[idx]+'” to complete Level '+SESSION.level); render(); return; }
+    }
+  }
+  toast('Saved — '+acc+'% to Week '+aw.week);
+  setTimeout(()=>go('profile'),800);
+}
+
+/* ---------- RAPSODO baseline logger ---------- */
+function buildRapsodo(p){
+  const rounds = p.age<=8?2:3;
+  const names=['Off Tee','Front Toss','Pitching Machine'];
+  const arr=[];
+  for(let r=0;r<rounds;r++) for(let i=0;i<8;i++) arr.push({round:r, name:names[r], ev:0, dist:0});
+  return arr;
+}
+function viewRapsodo(){
+  const p=curPlayer(); const arr=SESSION.rapsodo;
+  const st=rapsodoStats(arr);
+  const rows=arr.map((s,i)=>`
+    <div class="swing ${s.ev>0?(isHardHit(s.ev,st.maxEV)?'correct':'empty'):'empty'}">
+      <div class="sh"><span class="n">Swing ${(i%8)+1} · ${s.name}</span>
+        ${s.ev>0?(isHardHit(s.ev,st.maxEV)?'<span class="tag ok">Hard Hit</span>':'<span class="tag round">In play</span>'):'<span class="tag round">Round '+(s.round+1)+'</span>'}</div>
+      <div class="numrow"><input type="number" placeholder="Exit velo (mph)" value="${s.ev||''}" onchange="SESSION.rapsodo[${i}].ev=+this.value||0;render()">
+        <input type="number" placeholder="Distance (ft)" value="${s.dist||''}" onchange="SESSION.rapsodo[${i}].dist=+this.value||0;render()"></div>
+    </div>`).join('');
+  const roundsInfo = p.age<=8? '2 rounds of 8 (Tee, Front Toss) — under-8, no pitching machine.' : '3 rounds of 8 (Tee, Front Toss, Machine).';
+  const cloud = SESSION.pulled
+    ? `<button class="rap-pull done" onclick="pullRapsodo()">✓ Synced ${arr.length} swings — pull again</button>`
+    : `<button class="rap-pull" onclick="pullRapsodo()">${IC.sync} Pull latest session from Rapsodo</button>`;
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="go('profile')">${IC.back}</button>`)}
+    <div class="logger-head"><h2>RAPSODO <em>ASSESSMENT</em></h2><div class="desc">${roundsInfo} Hard-hit = a swing ≥ 80% of this session's max exit velo.</div></div>
+    <div class="rap-cloud">
+      <div class="rc-top"><span class="rc-dot"></span><span class="t">Connected to <b>cloud.rapsodo.com</b></span></div>
+      <div class="rc-sub">${p.first}'s swings import automatically — Avg EV, Max EV, distance and hard-hit % calculate for you. Edit any value by hand if needed.</div>
+      ${cloud}
+    </div>
+    <div class="score-strip">
+      <div class="sc"><div class="k">Avg EV</div><div class="v">${st.avgEV||'—'}</div></div>
+      <div class="sc pass"><div class="k">Max EV</div><div class="v">${st.maxEV||'—'}</div></div>
+      <div class="sc"><div class="k">Avg Dist</div><div class="v">${st.avgDist||'—'}</div></div>
+      <div class="sc"><div class="k">Max Dist</div><div class="v">${st.maxDist||'—'}</div></div>
+    </div>
+    <div class="score-strip"><div class="sc ${st.hardHitPct>=50?'pass':''}" style="flex:1"><div class="k">Hard Hit %  (≥80% of ${st.maxEV||'max'} mph)</div><div class="v">${st.hardHitPct}%</div></div></div>
+    <div class="swing-list">${rows}</div>
+    <div class="save-bar"><button class="btn" onclick="saveRapsodo()">Save Rapsodo Baseline</button></div>
+    <div style="height:10px"></div>
+  </div>`;
+}
+/* simulate importing a session from cloud.rapsodo.com */
+function pullRapsodo(){
+  const p=curPlayer();
+  const base = (p.maxEV&&p.maxEV>0)? p.maxEV : (p.age<=8?42:58);
+  const roundBoost=[-5,0,4]; // tee lower, machine highest
+  SESSION.rapsodo.forEach(s=>{
+    const spread = -7 + Math.random()*12;
+    const v = Math.max(20, Math.round(base + (roundBoost[s.round]||0) + spread));
+    s.ev = v;
+    s.dist = Math.max(30, Math.round(v*3.4 - 15 + Math.random()*40));
+  });
+  SESSION.pulled=true;
+  toast('Imported '+SESSION.rapsodo.length+' swings from Rapsodo');
+  render();
+}
+function saveRapsodo(){
+  const p=curPlayer(); const st=rapsodoStats(SESSION.rapsodo);
+  if(!st.n){ toast('Pull from Rapsodo or enter some exit velos first'); return; }
+  p.maxEV=st.maxEV;
+  const aw=curAssess(); aw.maxEV=st.maxEV;
+  aw.drills.rapsodo={pct:st.hardHitPct,label:'Hard Hit'};
+  cloudSavePlayer(p);
+  toast('Rapsodo saved — Max EV '+st.maxEV+' mph');
+  setTimeout(()=>go('profile'),700);
+}
+
+/* =============== VIDEO-GAME LEVEL-UP CELEBRATION =============== */
+/* ---------- PAST RESULTS / BREAKDOWNS (coach + parent) ---------- */
+function resultsList(p, wkIdx){
+  const aw=p.assessments[wkIdx]; if(!aw) return '';
+  const keys=Object.keys(DRILLS).filter(k=>aw.drills && aw.drills[k] && aw.drills[k].pct!=null);
+  if(!keys.length) return `<div class="center-note">No drills recorded for Week ${aw.week} yet.</div>`;
+  return keys.map(k=>{
+    const d=DRILLS[k]; const r=aw.drills[k]; const bd=r.breakdown;
+    const weak=(bd&&bd.weak&&bd.weak.pct<80)?bd.weak:null;
+    const focus = weak ? ('Focus: '+esc((bd.kindLbl||'').toLowerCase()+' '+weak.cat)+' · '+weak.pct+'%') : 'Solid across the board';
+    return `<button class="p-card" onclick="go('results',{drillKey:'${k}',week:${wkIdx}})">
+      <div class="p-photo" style="display:flex;align-items:center;justify-content:center;background:var(--panel-2);color:var(--green);font-family:'Anton';font-style:italic;font-size:19px">${r.pct}%</div>
+      <div class="p-info"><h3>${d.name}</h3><div class="meta">${focus}</div></div>
+      ${IC.chev}
+    </button>`;
+  }).join('');
+}
+function viewResults(){
+  const p=curPlayer(); const c=DB.ctx;
+  const wk=(c.week!=null && p.assessments[c.week])? c.week : 0;
+  const aw=p.assessments[wk]||p.assessments[0];
+  const key=c.drillKey; const d=DRILLS[key]||{name:'Drill'};
+  const res=(aw.drills&&aw.drills[key])||{};
+  const isParent=AUTH && AUTH.role==='parent';
+  const back=isParent?"go('parentHome')":"go('profile',{week:"+wk+"})";
+  const body=res.breakdown ? renderBreakdown(res.breakdown)
+    : `<div class="center-note">Score saved (${res.pct!=null?res.pct+'%':'—'}), but the detailed breakdown wasn't captured for this test. Tests going forward will show the full breakdown and recommendation here.</div>`;
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="${back}">${IC.back}</button>`)}
+    <div class="pad">
+      <div class="hello"><p>Week ${aw.week} · ${esc(d.name)} · ${esc(res.label||'')}</p><h2>WHAT TO <em>WORK ON</em></h2></div>
+      <div class="stat-row" style="padding:0 0 6px">
+        <div class="stat"><div class="k">Score</div><div class="v" style="color:var(--green)">${res.pct!=null?res.pct:'—'}<small>%</small></div></div>
+        <div class="stat"><div class="k">Drill</div><div class="v" style="font-size:15px">${esc(d.name)}</div></div>
+        <div class="stat"><div class="k">Block</div><div class="v">WK ${aw.week}</div></div>
+      </div>
+      ${body}
+      <div style="height:24px"></div>
+    </div>
+  </div>
+  ${isParent?parentTabbar():tabbar('')}`;
+}
+
+function viewReward(){
+  const p=curPlayer(); const c=DB.ctx;
+  const d=DRILLS[c.drill]||{name:'Color Balls',icon:'C'};
+  const newLevel=(c.fromLevel||1)+1; const mastered=newLevel>maxLevel(c.drill);
+  const scorePct=c.pct!=null?c.pct:90;
+  const stars=scorePct>=90?3:scorePct>=75?2:1;
+  const starHtml=[0,1,2].map(i=>`<span class="rw-star ${i<stars?'lit':''}" style="animation-delay:${.5+i*.18}s">★</span>`).join('');
+  const back = c.demo ? `onclick="DB.view='login';render()"` : `onclick="go('profile')"`;
+  return `<div class="reward" id="reward">
+    <div class="rw-confetti" id="confetti"></div>
+    <div class="rw-inner">
+      <div class="rw-burst">${logoSVG(96,false)}</div>
+      <div class="rw-great">GREAT JOB!</div>
+      <div class="rw-sub">${esc(p?p.first:'You')} crushed <b>${d.name}</b> — ${scorePct}%</div>
+      <div class="rw-stars">${starHtml}</div>
+      <div class="rw-unlock">
+        <div class="rw-lock" id="rwlock">${mastered?'<span style="font-size:24px;color:var(--green)">★</span>':IC.lock}</div>
+        <div class="rw-unlock-txt">${mastered?`<span>${esc(d.name).toUpperCase()}</span><b>MASTERED!</b>`:`<span>LEVEL ${newLevel}</span><b>UNLOCKED</b>`}</div>
+      </div>
+      <div class="rw-levelbar"><div class="rw-l l-done">LVL ${c.fromLevel||1} ✓</div>
+        <div class="rw-track"><i></i></div>
+        <div class="rw-l l-next">${mastered?'★ MASTER':`LVL ${newLevel}`}</div></div>
+      <button class="rw-btn" ${back}>KEEP GOING ▶</button>
+      <div class="rw-tag">HPL YOUTH · Hitting Performance Lab</div>
+    </div>
+  </div>`;
+}
+function startConfetti(){
+  const el=$('#confetti'); if(!el) return;
+  const cols=['#83f52c','#5bc70e','#ffffff','#ffb020','#3d7bff','#e23b3b'];
+  let html='';
+  for(let i=0;i<44;i++){
+    const l=Math.random()*100, dl=Math.random()*2.2, dur=2.4+Math.random()*2.2, sz=6+Math.random()*8;
+    const rot=Math.random()*360, col=cols[i%cols.length];
+    html+=`<span class="cf" style="left:${l}%;width:${sz}px;height:${sz*0.5}px;background:${col};animation-delay:${dl}s;animation-duration:${dur}s;transform:rotate(${rot}deg)"></span>`;
+  }
+  el.innerHTML=html;
+}
+
+/* ---------- PARENT HOME (read-only, own child) ---------- */
+function viewParentHome(){
+  const p=curPlayer(); const last=p.assessments[p.assessments.length-1];
+  const first=p.assessments[0];
+  const evDelta=last.maxEV-first.maxEV;
+  const drillRows=Object.keys(DRILLS).map(k=>{
+    const d=DRILLS[k]; const lv=p.levels[k]; const res=last.drills[k];
+    return `<div class="pp-card">
+      <div class="ph"><h4>${d.name}</h4>${levelBadge(lv)}</div>
+      <div class="pb">
+        <div class="pp-metric"><div class="k">Current Level</div><div class="v up">L${Math.min(lv,maxLevel(k))} / ${maxLevel(k)}</div></div>
+        <div class="pp-metric"><div class="k">Last Score</div><div class="v">${res?res.pct+'%':'—'}</div></div>
+        <div class="pp-metric" style="flex:1"><div class="k">Focus</div><div class="muted" style="margin-top:4px">${d.desc}</div></div>
+      </div></div>`;
+  }).join('');
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="logout()">${IC.user}</button>`)}
+    <div class="pad" style="padding-top:0">
+      <div class="hello"><p>Parent view · read-only</p><h2>${esc(p.first.toUpperCase())}'S <em>PROGRESS</em></h2></div>
+    </div>
+    <div class="prof-hero">
+      <div class="prof-photo-wrap"><img class="prof-photo" src="${p.photo}" alt=""><div class="prof-hand">${p.hand}</div></div>
+      <div class="prof-name">${esc(p.first.toUpperCase())} <em>${esc(p.last.toUpperCase())}</em></div>
+      <div class="prof-sub">${handWord(p.hand)} <span class="dot">•</span> ${p.age}U ${p.sport}</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="k">Max EV Now</div><div class="v" style="color:var(--green)">${last.maxEV}<small>mph</small></div></div>
+      <div class="stat"><div class="k">Since Start</div><div class="v" style="color:${evDelta>=0?'var(--green)':'#ff7b6b'}">${evDelta>=0?'+':''}${evDelta}<small>mph</small></div></div>
+      <div class="stat"><div class="k">Blocks</div><div class="v">${p.assessments.length}</div></div>
+    </div>
+    <p class="join"><em>Training with HPL Youth since <b>${fmtDate(p.join)}</b> · Reassessed every 5 weeks</em></p>
+    <div class="section-lbl">Rapsodo Numbers</div>
+    <div class="rap-numbers">
+      ${rapStatTile('Max Exit Velo',p.maxEV,'mph')}
+      ${rapStatTile('Avg Exit Velo',p.avgEV,'mph')}
+      ${rapStatTile('Max Distance',p.maxDist,'ft')}
+      ${rapStatTile('Avg Distance',p.avgDist,'ft')}
+    </div>
+    <div class="section-lbl">Exit Velo Trend</div>
+    ${evTrend(p)}
+    <div class="section-lbl">Latest Test — tap to see what to work on</div>
+    ${resultsList(p, p.assessments.length-1)}
+    <div class="section-lbl">Drill Development</div>
+    ${drillRows}
+    <div style="height:20px"></div>
+  </div>
+  ${parentTabbar()}`;
+}
+function evTrend(p){
+  const vals=p.assessments.map(a=>a.maxEV); const mx=Math.max(...vals), mn=Math.min(...vals)-4;
+  const bars=p.assessments.map(a=>{
+    const h=Math.round(((a.maxEV-mn)/(mx-mn))*90)+20;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+      <div style="font-size:11px;color:var(--green);font-weight:700">${a.maxEV}</div>
+      <div style="width:26px;height:${h}px;border-radius:7px 7px 0 0;background:linear-gradient(180deg,var(--green),var(--green-deep))"></div>
+      <div style="font-size:10px;color:var(--grey)">WK ${a.week}</div></div>`;
+  }).join('');
+  return `<div style="margin:0 16px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px 14px;display:flex;gap:10px;align-items:flex-end;height:150px">${bars}</div>`;
+}
+function parentTabbar(){
+  return `<div class="tabbar">
+    <button class="tab on">${IC.home}<span>Progress</span></button>
+    <button class="tab" onclick="toast('Coming soon')">${IC.chart}<span>History</span></button>
+    <button class="tab" onclick="toast('Coming soon')">${IC.ball}<span>Coach</span></button>
+    <button class="tab" onclick="logout()">${IC.user}<span>Log out</span></button>
+  </div>`;
+}
+
+/* dynamic bindings after render (focus retention for search) */
+function bindDynamic(){}
+
+/* boot */
+cloudInit();
+/* build: v3 supabase */
+</script>
+</body>
+</html>
