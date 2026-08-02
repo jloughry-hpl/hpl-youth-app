@@ -173,6 +173,18 @@
   .assess .a .wk{font-family:'Anton';font-style:italic;font-size:15px}
   .assess .a .dt{color:var(--grey);font-size:10px;margin-top:2px}
   .assess .a .ev{color:var(--green);font-weight:700;font-size:12px;margin-top:6px}
+  /* 4-week block carousel */
+  .block-carousel{display:flex;align-items:stretch;gap:6px;padding:0 12px}
+  .bc-nav{flex:0 0 auto;width:34px;background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    color:var(--green);display:flex;align-items:center;justify-content:center}
+  .bc-nav:disabled{opacity:.3;color:var(--grey-d)}
+  .bc-nav svg{width:16px;height:16px}
+  .assess.blk-strip{flex:1;padding:0;overflow:visible}
+  .assess .a.blk{width:auto;flex:1 1 0;min-width:0;padding:11px 4px}
+  .assess .a.blk .wk{font-family:'Barlow Semi Condensed';font-weight:700;font-size:9px;letter-spacing:.5px;color:var(--grey)}
+  .assess .a.blk .blk-lbl{font-family:'Anton';font-style:italic;font-size:16px;color:#fff;margin-top:1px;white-space:nowrap}
+  .assess .a.blk.empty{opacity:.5}
+  .assess .a.blk.empty .ev{color:var(--grey-d)}
 
   /* drill list on profile */
   .drill-card{margin:0 16px 11px;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:14px;width:calc(100% - 32px);text-align:left;display:block}
@@ -696,6 +708,7 @@ function render(){
   else if(v==='parentHome') vp.innerHTML=viewParentHome();
   else if(v==='coaches') vp.innerHTML=viewCoaches();
   else if(v==='results') vp.innerHTML=viewResults();
+  else if(v==='block') vp.innerHTML=viewBlock();
   bindDynamic();
   if(DB.view==='reward') startConfetti();
 }
@@ -858,8 +871,47 @@ function viewCoaches(){
 
 /* ---------- PROFILE (coach) ---------- */
 function levelBadge(lv){ return `<span class="lvl-badge l2">Level ${lv}</span>`; }
-function weekIdx(){ const p=curPlayer(); const n=p.assessments.length; let i=DB.ctx.week; if(i==null||i>=n||i<0) i=0; return i; }
+function weekIdx(){ const p=curPlayer(); return Math.max(0, p.assessments.length-1); }
 function curAssess(){ return curPlayer().assessments[weekIdx()]; }
+/* 13 fixed 4-week blocks: index 0 = weeks 1-4, ... index 12 = weeks 49-52 */
+var NUM_BLOCKS=13;
+function blockLabel(i){ return (i*4+1)+'-'+(i*4+4); }
+function blockTested(a){ return !!(a && a.drills && Object.keys(a.drills).some(k=>a.drills[k]&&a.drills[k].pct!=null)); }
+function blockCarousel(p){
+  const per=4, maxPage=Math.ceil(NUM_BLOCKS/per)-1;
+  const latestIdx=Math.min(p.assessments.length-1, NUM_BLOCKS-1);
+  let page=DB.ctx.bpage; if(page==null) page=Math.max(0,Math.floor(latestIdx/per));
+  page=Math.max(0,Math.min(page,maxPage));
+  let cells='';
+  for(let i=page*per; i<Math.min(page*per+per,NUM_BLOCKS); i++){
+    const a=p.assessments[i]; const tested=blockTested(a);
+    cells+=`<button class="a blk ${tested?'':'empty'} ${i===latestIdx?'cur':''}" onclick="go('block',{block:${i}})">
+      <div class="wk">WEEKS</div><div class="blk-lbl">${blockLabel(i)}</div>
+      <div class="ev">${tested?(a.maxEV?a.maxEV+' mph':'✓ done'):'—'}</div></button>`;
+  }
+  const prev=`<button class="bc-nav" ${page<=0?'disabled':''} onclick="go('${DB.view}',{bpage:${page-1}})">${IC.back}</button>`;
+  const next=`<button class="bc-nav" ${page>=maxPage?'disabled':''} onclick="go('${DB.view}',{bpage:${page+1}})">${IC.chev}</button>`;
+  return `<div class="block-carousel">${prev}<div class="assess blk-strip">${cells}</div>${next}</div>
+    <div class="wk-note" style="text-align:center">Block ${page+1} of ${maxPage+1} · tap a block to see how those tests went</div>`;
+}
+function viewBlock(){
+  const p=curPlayer(); const i=(DB.ctx.block!=null)?DB.ctx.block:0;
+  const a=p.assessments[i];
+  const isParent=AUTH && AUTH.role==='parent';
+  const back=isParent?"go('parentHome')":"go('profile')";
+  const body=blockTested(a) ? resultsList(p,i)
+    : `<div class="center-note">No tests recorded for Weeks ${blockLabel(i)} yet.</div>`;
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="${back}">${IC.back}</button>`)}
+    <div class="pad">
+      <div class="hello"><p>${esc(p.first)} · Test Block</p><h2>WEEKS <em>${blockLabel(i)}</em></h2></div>
+      <div class="list-head"><span class="lbl">Drills tested this block</span></div>
+      ${body}
+      <div style="height:20px"></div>
+    </div>
+  </div>
+  ${isParent?parentTabbar():tabbar('')}`;
+}
 function viewProfile(){
   const p=curPlayer();
   const aw=curAssess();
@@ -873,19 +925,13 @@ function viewProfile(){
       <div class="dc-top">
         <div class="dc-ic">${d.icon}</div>
         <div class="dc-name"><h4>${d.name}</h4>
-          <div class="st">${res.pct!=null?('Wk '+aw.week+': '+res.pct+'% · '+res.label):'Not yet tested this block'}</div></div>
+          <div class="st">${res.pct!=null?(res.pct+'% · '+res.label):'Not yet tested this block'}</div></div>
         <div class="lv-tags">${lvTag}</div>
       </div>
       <div class="prog"><i style="width:${Math.min(prog,100)}%"></i></div>
       <div class="prog-txt"><span>Working on Level ${curLv}</span><span><b>${prog}%</b> ${res.pct!=null?'':'· tap to record'}</span></div>
     </button>`;
   }).join('');
-
-  const timeline=p.assessments.map((a,i)=>`
-    <button class="a ${i===weekIdx()?'cur':''}" onclick="go('profile',{week:${i}})">
-      <div class="wk">WK ${a.week}</div><div class="dt">${shortDate(a.date)}</div>
-      <div class="ev">${a.maxEV||'—'} mph</div></button>`).join('');
-  const rap=aw.drills.rapsodo;
 
   return `<div class="scroll">
     ${topbar(`<button class="icon-btn" onclick="go('roster')">${IC.back}</button>`)}
@@ -911,14 +957,10 @@ function viewProfile(){
 
     ${rapNumbersCard(p)}
 
-    <div class="section-lbl">Assessment Blocks — tap a week <span class="link" onclick="newAssessment()">+ New</span></div>
-    <div class="assess">${timeline}</div>
-    <div class="wk-note">Viewing <b>Week ${aw.week}</b> · ${shortDate(aw.date)}. Anything you record saves to this block.</div>
+    <div class="section-lbl">Test Blocks — Weeks 1-52 <span class="link" onclick="newAssessment()">+ New Block</span></div>
+    ${blockCarousel(p)}
 
-    <div class="section-lbl">Test Results — Week ${aw.week} · tap for the breakdown</div>
-    ${resultsList(p, weekIdx())}
-
-    <div class="section-lbl">Drill Tracking — Week ${aw.week}</div>
+    <div class="section-lbl">Record Test — Weeks ${blockLabel(weekIdx())} (current block)</div>
     ${drillCards}
     <div style="height:24px"></div>
   </div>`;
@@ -1013,10 +1055,13 @@ function saveNewPlayer(){
   go('parentHome',{playerId:id});
 }
 function newAssessment(){
-  const p=curPlayer(); const last=p.assessments[p.assessments.length-1];
-  p.assessments.push(assess(last.week+5,'2026-07-01',p.maxEV));
+  const p=curPlayer();
+  if(p.assessments.length>=NUM_BLOCKS){ toast('All 13 blocks (through week 52) are in use'); return; }
+  const idx=p.assessments.length;
+  p.assessments.push(assess(idx*4+1, new Date().toISOString().slice(0,10), p.maxEV));
+  DB.ctx.bpage=null;
   cloudSavePlayer(p);
-  toast('New assessment block — Week '+(last.week+5)); render();
+  toast('New test block — Weeks '+blockLabel(idx)); render();
 }
 
 /* ================= DRILL ENGINE ================= */
@@ -1498,7 +1543,7 @@ function viewResults(){
   const key=c.drillKey; const d=DRILLS[key]||{name:'Drill'};
   const res=(aw.drills&&aw.drills[key])||{};
   const isParent=AUTH && AUTH.role==='parent';
-  const back=isParent?"go('parentHome')":"go('profile',{week:"+wk+"})";
+  const back="go('block',{block:"+wk+"})";
   const body=res.breakdown ? renderBreakdown(res.breakdown)
     : `<div class="center-note">Score saved (${res.pct!=null?res.pct+'%':'—'}), but the detailed breakdown wasn't captured for this test. Tests going forward will show the full breakdown and recommendation here.</div>`;
   return `<div class="scroll">
@@ -1596,8 +1641,8 @@ function viewParentHome(){
     </div>
     <div class="section-lbl">Exit Velo Trend</div>
     ${evTrend(p)}
-    <div class="section-lbl">Latest Test — tap to see what to work on</div>
-    ${resultsList(p, p.assessments.length-1)}
+    <div class="section-lbl">Test Blocks — tap a block to see results</div>
+    ${blockCarousel(p)}
     <div class="section-lbl">Drill Development</div>
     ${drillRows}
     <div style="height:20px"></div>
