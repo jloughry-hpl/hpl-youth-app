@@ -180,9 +180,9 @@
   .bc-nav:disabled{opacity:.3;color:var(--grey-d)}
   .bc-nav svg{width:16px;height:16px}
   .assess.blk-strip{flex:1;padding:0;overflow:visible}
-  .assess .a.blk{width:auto;flex:1 1 0;min-width:0;padding:11px 4px}
-  .assess .a.blk .wk{font-family:'Barlow Semi Condensed';font-weight:700;font-size:9px;letter-spacing:.5px;color:var(--grey)}
-  .assess .a.blk .blk-lbl{font-family:'Anton';font-style:italic;font-size:16px;color:#fff;margin-top:1px;white-space:nowrap}
+  .assess .a.blk{width:auto;flex:1 1 0;min-width:0;padding:13px 4px}
+  .assess .a.blk .wk{font-family:'Barlow Semi Condensed';font-weight:700;font-size:12px;letter-spacing:.5px;color:var(--grey)}
+  .assess .a.blk .blk-lbl{font-family:'Anton';font-style:italic;font-size:22px;color:#fff;margin-top:2px;white-space:nowrap}
   .assess .a.blk.empty{opacity:.5}
   .assess .a.blk.empty .ev{color:var(--grey-d)}
 
@@ -871,32 +871,44 @@ function viewCoaches(){
 
 /* ---------- PROFILE (coach) ---------- */
 function levelBadge(lv){ return `<span class="lvl-badge l2">Level ${lv}</span>`; }
-function weekIdx(){ const p=curPlayer(); return Math.max(0, p.assessments.length-1); }
-function curAssess(){ return curPlayer().assessments[weekIdx()]; }
-/* 13 fixed 4-week blocks: index 0 = weeks 1-4, ... index 12 = weeks 49-52 */
+/* 13 four-week blocks tied to each player's real start date */
 var NUM_BLOCKS=13;
 function blockLabel(i){ return (i*4+1)+'-'+(i*4+4); }
+function daysSince(iso){ if(!iso) return 0; const d=new Date(iso); if(isNaN(d.getTime())) return 0; return Math.max(0, Math.floor((Date.now()-d.getTime())/86400000)); }
+function playerWeek(p){ return Math.max(1, Math.min(52, Math.floor(daysSince(p&&p.join)/7)+1)); }
+function currentBlockIdx(p){ return Math.max(0, Math.min(NUM_BLOCKS-1, Math.floor((playerWeek(p)-1)/4))); }
+function assBlock(a,j){ return a && a.block!=null ? a.block : j; }
+function blockAssessment(p,i){ const arr=(p&&p.assessments)||[]; for(let j=0;j<arr.length;j++){ if(assBlock(arr[j],j)===i) return arr[j]; } return null; }
 function blockTested(a){ return !!(a && a.drills && Object.keys(a.drills).some(k=>a.drills[k]&&a.drills[k].pct!=null)); }
+function ensureCurrentAssessment(p){
+  const i=currentBlockIdx(p); let a=blockAssessment(p,i);
+  if(!a){ a={block:i, week:i*4+1, date:new Date().toISOString().slice(0,10), maxEV:p.maxEV||0, drills:{}}; p.assessments.push(a); }
+  else if(a.block==null){ a.block=i; }
+  return a;
+}
+function weekIdx(){ return currentBlockIdx(curPlayer()); }
+function curAssess(){ const p=curPlayer(); return blockAssessment(p,currentBlockIdx(p)) || {block:currentBlockIdx(p), week:currentBlockIdx(p)*4+1, date:'', maxEV:0, drills:{}}; }
+function slideBlocks(newStart){ const vp=$('#vp'); const y=vp?vp.scrollTop:0; DB.ctx.bstart=newStart; render(); const v=$('#vp'); if(v) v.scrollTop=y; }
 function blockCarousel(p){
-  const per=4, maxPage=Math.ceil(NUM_BLOCKS/per)-1;
-  const latestIdx=Math.min(p.assessments.length-1, NUM_BLOCKS-1);
-  let page=DB.ctx.bpage; if(page==null) page=Math.max(0,Math.floor(latestIdx/per));
-  page=Math.max(0,Math.min(page,maxPage));
+  const win=4, maxStart=NUM_BLOCKS-win;
+  const cur=currentBlockIdx(p);
+  let start=DB.ctx.bstart; if(start==null) start=Math.max(0,Math.min(cur-1,maxStart));
+  start=Math.max(0,Math.min(start,maxStart));
   let cells='';
-  for(let i=page*per; i<Math.min(page*per+per,NUM_BLOCKS); i++){
-    const a=p.assessments[i]; const tested=blockTested(a);
-    cells+=`<button class="a blk ${tested?'':'empty'} ${i===latestIdx?'cur':''}" onclick="go('block',{block:${i}})">
+  for(let i=start;i<start+win;i++){
+    const a=blockAssessment(p,i); const tested=blockTested(a);
+    cells+=`<button class="a blk ${tested?'':'empty'} ${i===cur?'cur':''}" onclick="go('block',{block:${i}})">
       <div class="wk">WEEKS</div><div class="blk-lbl">${blockLabel(i)}</div>
-      <div class="ev">${tested?(a.maxEV?a.maxEV+' mph':'✓ done'):'—'}</div></button>`;
+      <div class="ev">${tested?(a.maxEV?a.maxEV+' mph':'✓ done'):(i===cur?'current':'—')}</div></button>`;
   }
-  const prev=`<button class="bc-nav" ${page<=0?'disabled':''} onclick="go('${DB.view}',{bpage:${page-1}})">${IC.back}</button>`;
-  const next=`<button class="bc-nav" ${page>=maxPage?'disabled':''} onclick="go('${DB.view}',{bpage:${page+1}})">${IC.chev}</button>`;
+  const prev=`<button class="bc-nav" ${start<=0?'disabled':''} onclick="slideBlocks(${start-1})">${IC.back}</button>`;
+  const next=`<button class="bc-nav" ${start>=maxStart?'disabled':''} onclick="slideBlocks(${start+1})">${IC.chev}</button>`;
   return `<div class="block-carousel">${prev}<div class="assess blk-strip">${cells}</div>${next}</div>
-    <div class="wk-note" style="text-align:center">Block ${page+1} of ${maxPage+1} · tap a block to see how those tests went</div>`;
+    <div class="wk-note" style="text-align:center">Player is in Week ${playerWeek(p)} · tap a block for results</div>`;
 }
 function viewBlock(){
   const p=curPlayer(); const i=(DB.ctx.block!=null)?DB.ctx.block:0;
-  const a=p.assessments[i];
+  const a=blockAssessment(p,i);
   const isParent=AUTH && AUTH.role==='parent';
   const back=isParent?"go('parentHome')":"go('profile')";
   const body=blockTested(a) ? resultsList(p,i)
@@ -957,7 +969,7 @@ function viewProfile(){
 
     ${rapNumbersCard(p)}
 
-    <div class="section-lbl">Test Blocks — Weeks 1-52 <span class="link" onclick="newAssessment()">+ New Block</span></div>
+    <div class="section-lbl">Test Blocks — tap a block for results</div>
     ${blockCarousel(p)}
 
     <div class="section-lbl">Record Test — Weeks ${blockLabel(weekIdx())} (current block)</div>
@@ -1431,7 +1443,7 @@ function saveDrill(){
   const arr=slots(); const done=arr.filter(s=>s._done).length;
   if(!done){ toast('Log at least one swing first'); return; }
   const acc=pct(arr.filter(s=>swingResult(panel,s)).length,done);
-  const aw=curAssess();
+  const aw=ensureCurrentAssessment(p);
   aw.drills[SESSION.key]={pct:acc, label:m.subtabs[SESSION.sub]+' · L'+SESSION.level, level:SESSION.level, breakdown:computeBreakdown(panel,arr)};
   cloudSavePlayer(p);
   // level complete?
@@ -1522,7 +1534,7 @@ function saveRapsodo(){
 /* =============== VIDEO-GAME LEVEL-UP CELEBRATION =============== */
 /* ---------- PAST RESULTS / BREAKDOWNS (coach + parent) ---------- */
 function resultsList(p, wkIdx){
-  const aw=p.assessments[wkIdx]; if(!aw) return '';
+  const aw=blockAssessment(p, wkIdx); if(!aw) return '';
   const keys=Object.keys(DRILLS).filter(k=>aw.drills && aw.drills[k] && aw.drills[k].pct!=null);
   if(!keys.length) return `<div class="center-note">No drills recorded for Week ${aw.week} yet.</div>`;
   return keys.map(k=>{
@@ -1538,22 +1550,22 @@ function resultsList(p, wkIdx){
 }
 function viewResults(){
   const p=curPlayer(); const c=DB.ctx;
-  const wk=(c.week!=null && p.assessments[c.week])? c.week : 0;
-  const aw=p.assessments[wk]||p.assessments[0];
+  const bi=(c.week!=null)? c.week : 0;
+  const aw=blockAssessment(p,bi) || {week:bi*4+1, drills:{}};
   const key=c.drillKey; const d=DRILLS[key]||{name:'Drill'};
   const res=(aw.drills&&aw.drills[key])||{};
   const isParent=AUTH && AUTH.role==='parent';
-  const back="go('block',{block:"+wk+"})";
+  const back="go('block',{block:"+bi+"})";
   const body=res.breakdown ? renderBreakdown(res.breakdown)
     : `<div class="center-note">Score saved (${res.pct!=null?res.pct+'%':'—'}), but the detailed breakdown wasn't captured for this test. Tests going forward will show the full breakdown and recommendation here.</div>`;
   return `<div class="scroll">
     ${topbar(`<button class="icon-btn" onclick="${back}">${IC.back}</button>`)}
     <div class="pad">
-      <div class="hello"><p>Week ${aw.week} · ${esc(d.name)} · ${esc(res.label||'')}</p><h2>WHAT TO <em>WORK ON</em></h2></div>
+      <div class="hello"><p>Weeks ${blockLabel(bi)} · ${esc(d.name)} · ${esc(res.label||'')}</p><h2>WHAT TO <em>WORK ON</em></h2></div>
       <div class="stat-row" style="padding:0 0 6px">
         <div class="stat"><div class="k">Score</div><div class="v" style="color:var(--green)">${res.pct!=null?res.pct:'—'}<small>%</small></div></div>
         <div class="stat"><div class="k">Drill</div><div class="v" style="font-size:15px">${esc(d.name)}</div></div>
-        <div class="stat"><div class="k">Block</div><div class="v">WK ${aw.week}</div></div>
+        <div class="stat"><div class="k">Block</div><div class="v" style="font-size:15px">Wks ${blockLabel(bi)}</div></div>
       </div>
       ${body}
       <div style="height:24px"></div>
