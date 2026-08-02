@@ -888,7 +888,7 @@ function ensureCurrentAssessment(p){
 }
 function weekIdx(){ return currentBlockIdx(curPlayer()); }
 function curAssess(){ const p=curPlayer(); return blockAssessment(p,currentBlockIdx(p)) || {block:currentBlockIdx(p), week:currentBlockIdx(p)*4+1, date:'', maxEV:0, drills:{}}; }
-function slideBlocks(newStart){ const vp=$('#vp'); const y=vp?vp.scrollTop:0; DB.ctx.bstart=newStart; render(); const v=$('#vp'); if(v) v.scrollTop=y; }
+function slideBlocks(newStart){ const sc=$('.scroll'); const y=sc?sc.scrollTop:0; DB.ctx.bstart=newStart; render(); requestAnimationFrame(()=>{ const s=$('.scroll'); if(s) s.scrollTop=y; }); }
 function blockCarousel(p){
   const win=4, maxStart=NUM_BLOCKS-win;
   const cur=currentBlockIdx(p);
