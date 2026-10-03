@@ -670,6 +670,17 @@ function playerById(id){ return DB.players.find(p=>p.id===id); }
 function curPlayer(){ return playerById(DB.ctx.playerId); }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>{ t.classList.remove('show'); }, 1900); }
 function go(view,ctx={}){ DB.view=view; DB.ctx={...DB.ctx,...ctx}; render(); $('#vp').scrollTop=0; }
+/* ---- multi-child (parent can have more than one kid on one account) ---- */
+function pickChild(id){ var p=playerById(id); if(p) DB.sport=p.sport; go('parentHome',{playerId:id}); }
+function addAnotherChild(){ NEWP={first:'',last:'',birthdate:'',height:'',weight:'',hand:'R',sport:'baseball',photo:null}; go('addPlayer'); }
+function kidBar(curId){
+  var kids=DB.players||[];
+  var chips=kids.map(function(k){ var on=(k.id===curId);
+    return '<button onclick="pickChild(\''+k.id+'\')" style="flex:0 0 auto;padding:7px 14px;border-radius:999px;border:1.5px solid '+(on?'var(--green)':'var(--line)')+';background:'+(on?'rgba(131,245,44,.16)':'var(--panel)')+';color:'+(on?'var(--green)':'#cfd8cf')+';font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">'+esc(k.first)+'</button>';
+  }).join('');
+  var add='<button onclick="addAnotherChild()" style="flex:0 0 auto;padding:7px 14px;border-radius:999px;border:1.5px dashed var(--green);background:transparent;color:var(--green);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">+ Add Child</button>';
+  return '<div style="display:flex;gap:8px;overflow-x:auto;padding:2px 16px 12px;-webkit-overflow-scrolling:touch">'+chips+add+'</div>';
+}
 
 /* icon set */
 const IC={
@@ -1019,7 +1030,7 @@ function saveRap(){
 var NEWP={first:'',last:'',birthdate:'',height:'',weight:'',hand:'R'};
 function viewAddPlayer(){
   return `<div class="scroll">
-    ${topbar(`<button class="back" onclick="logout()">${IC.back} Log out</button>`)}
+    ${topbar((DB.players&&DB.players.length)?`<button class="back" onclick="pickChild('${DB.ctx.playerId||(DB.players[0]&&DB.players[0].id)||''}')">${IC.back} Back</button>`:`<button class="back" onclick="logout()">${IC.back} Log out</button>`)}
     <div class="logger-head"><h2>ADD YOUR <em>PLAYER</em></h2>
       <div class="desc">Set up your child's profile. You're their parent/guardian on the account, and by adding them you consent to HPL Youth tracking their hitting development.</div></div>
     <div class="pad">
@@ -1637,6 +1648,7 @@ function viewParentHome(){
     <div class="pad" style="padding-top:0">
       <div class="hello"><p>Parent view · read-only</p><h2>${esc(p.first.toUpperCase())}'S <em>PROGRESS</em></h2></div>
     </div>
+    ${kidBar(p.id)}
     <div class="prof-hero">
       <div class="prof-photo-wrap"><img class="prof-photo" src="${p.photo}" alt=""><div class="prof-hand">${p.hand}</div></div>
       <div class="prof-name">${esc(p.first.toUpperCase())} <em>${esc(p.last.toUpperCase())}</em></div>
