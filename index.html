@@ -528,7 +528,8 @@ async function enterApp(user){
   AUTH={ id:user.id, email:user.email, role:(prof&&prof.role)||'parent', org_id:(prof&&prof.org_id)||null, name:(prof&&prof.full_name)||user.email };
   DB.user={ role:AUTH.role, email:AUTH.email, name:AUTH.name, org_id:AUTH.org_id };
   DB.players=await cloudLoadPlayers();
-  if(AUTH.role==='coach'||AUTH.role==='admin'){ DB.view='roster'; DB.ctx={}; render(); }
+  await loadFacEquip();
+  if(AUTH.role==='coach'||AUTH.role==='admin'){ DB.view='facilities'; DB.ctx={}; render(); }
   else{ const kid=DB.players[0];
     if(kid){ DB.sport=kid.sport; DB.view='parentHome'; DB.ctx={playerId:kid.id}; render(); }
     else{ NEWP={first:'',last:'',birthdate:'',height:'',weight:'',hand:'R',sport:'baseball'}; DB.view='addPlayer'; render(); }
@@ -682,6 +683,129 @@ function kidBar(curId){
   return '<div style="display:flex;gap:8px;overflow-x:auto;padding:2px 16px 12px;-webkit-overflow-scrolling:touch">'+chips+add+'</div>';
 }
 
+/* ================= LOCATIONS / EQUIPMENT / WORKOUT (coach) ================= */
+const YFACILITIES=[{k:'lex',name:'HPL Lex'},{k:'marion',name:'HPL Marion'},{k:'bright',name:'Bright Academy'},{k:'morse',name:'Morse Academy'},{k:'columbus',name:'HPL Columbus'},{k:'remote',name:'Remote'}];
+function facilityName(k){ var f=YFACILITIES.filter(function(x){return x.k===k;})[0]; return f?f.name:'Unassigned'; }
+var FAC_EQUIP={};
+const YEQUIP_KEYS=[{k:'pelotero',lbl:'Pelotero'},{k:'colorBalls',lbl:'Color Balls'},{k:'smallBalls',lbl:'Small Balls'},{k:'skinnyBat',lbl:'Skinny Bat'},{k:'machine',lbl:'Machine'}];
+function yEquip(fac){ return Object.assign({pelotero:false,colorBalls:true,smallBalls:true,skinnyBat:true,machine:true}, FAC_EQUIP[fac]||{}); }
+async function loadFacEquip(){ try{ const r=await SBc.from('youth_facility').select('facility,equip'); if(r&&r.data){ FAC_EQUIP={}; r.data.forEach(function(row){ FAC_EQUIP[row.facility]=row.equip||{}; }); } }catch(e){ console.warn('facEquip',e); } }
+async function appRefresh(){ toast('Refreshing…'); try{ if(AUTH){ DB.players=await cloudLoadPlayers(); await loadFacEquip(); } }catch(e){} render(); toast('Up to date'); }
+function assignFacility(id,fac){ var p=playerById(id); if(!p)return; p.facility=fac||null; cloudSavePlayer(p); toast(p.first+' → '+(fac?facilityName(fac):'Unassigned')); render(); }
+
+/* ---- youth drill pools ---- */
+const Y_TEE=[["Slow Mo's","Swing Backs","Launch Angle"],["Rhythm","Step Backs","Happy Gilmores"],["Flamingo","Babe Ruth","Open Hip"]];
+const Y_SIDE=["Normal","Shotgun","Top/Bottom","Machine Gun","Launch Angle","Off-Speed","Step Backs","FB"];
+const Y_FRONT=["Normal","Bounce","Skinny Bat","Fast/Slow","Split Grip","Oppo","Heavy Bat"];
+const Y_DARTS={ color:["No Red","Blue Only","Small Balls","Ball/Pop"], atw:["Small Balls","2 Seam/4 Seam","Ball/Pop","Short Bat"], sevenball:["3 ball","5 ball","No Red","3 Plate"], threes:["Small Balls","2 Seam/4 Seam","3 Plate","Short Bat"] };
+const Y_BP=["Normal","Color Balls","3 Plate","Fast/Slow","Ball-Pop"];
+const Y_FOCUS=[ {k:'test',name:'Test Week'}, {k:'color',name:'Color Ball'}, {k:'atw',name:'Around the World'}, {k:'sevenball',name:'7 Ball'}, {k:'threes',name:'3-3-3'} ];
+const Y_NEEDS={ "No Red":"colorBalls","Blue Only":"colorBalls","Color Balls":"colorBalls","Small Balls":"smallBalls","Skinny Bat":"skinnyBat" };
+function yOk(name,eq){ var need=Y_NEEDS[name]; return !need || eq[need]!==false; }
+function yDayIdx(){ return Math.floor(Date.now()/86400000); }
+function yPickN(pool,n,start,eq){ var out=[],i=0,L=pool.length; while(out.length<n && i<L*2){ var nm=pool[(start+i)%L]; i++; if(eq && !yOk(nm,eq)) continue; if(out.indexOf(nm)<0) out.push(nm); } i=0; while(out.length<n && i<L){ var nm2=pool[(start+i)%L]; if(out.indexOf(nm2)<0) out.push(nm2); i++; } return out; }
+function yGenWorkout(focusKey,fac){
+  var eq=yEquip(fac); var d=yDayIdx(); var pelo=eq.pelotero;
+  var foc=Y_FOCUS.filter(function(f){return f.k===focusKey;})[0]||Y_FOCUS[1];
+  if(focusKey==='test') return {test:true,focus:foc,fac:fac,eq:eq,pelo:pelo};
+  var tee = pelo ? [ Y_TEE[0][d%3] ] : [ Y_TEE[0][d%3], Y_TEE[1][d%3], Y_TEE[2][d%3] ];
+  var side=yPickN(Y_SIDE,2,(2*d)%Y_SIDE.length,eq);
+  var front= pelo ? [] : yPickN(Y_FRONT,2,(2*d)%Y_FRONT.length,eq);
+  var dpool=Y_DARTS[focusKey]||Y_DARTS.color;
+  var darts=yPickN(dpool,2,(2*d)%dpool.length,eq);
+  var bp=yPickN(Y_BP,1,d%Y_BP.length,eq);
+  return { test:false, focus:foc, fac:fac, eq:eq, pelo:pelo, tee:tee, side:side, front:front, darts:darts, bp:bp };
+}
+
+/* ---- coach views ---- */
+function viewFacilities(){
+  if(!(AUTH && (AUTH.role==='coach'||AUTH.role==='admin'))) return viewRoster();
+  var sp=DB.sport;
+  var cards=YFACILITIES.map(function(f){ var n=DB.players.filter(function(p){return p.sport===sp && (p.facility||'')===f.k;}).length;
+    return `<button class="p-card" onclick="go('roster',{facility:'${f.k}'})"><div class="p-photo" style="display:flex;align-items:center;justify-content:center;background:var(--panel-2);color:var(--green)">${IC.home}</div><div class="p-info"><h3>${esc(f.name)}</h3><div class="meta">${n} player${n!==1?'s':''}</div></div>${IC.chev}</button>`; }).join('');
+  var unN=DB.players.filter(function(p){return p.sport===sp && !(p.facility);}).length;
+  var un = unN?`<button class="p-card" style="border-left:3px solid #f0b000" onclick="go('assign')"><div class="p-photo" style="display:flex;align-items:center;justify-content:center;background:rgba(240,176,0,.12);color:#f0b000">${IC.user}</div><div class="p-info"><h3>Unassigned</h3><div class="meta">${unN} player${unN!==1?'s':''} · tap to assign</div></div>${IC.chev}</button>`:'';
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="go('settings')" title="Settings" style="font-size:17px">⚙</button>`)}
+    <div class="sport-toggle"><button class="${sp==='baseball'?'on':''}" onclick="DB.sport='baseball';render()">${IC.ball} Baseball</button><button class="${sp==='softball'?'on':''}" onclick="DB.sport='softball';render()">${IC.ball} Softball</button></div>
+    <div class="pad"><div class="hello"><p>${esc(DB.user.name)} · Coach view</p><h2>HPL <em>LOCATIONS</em></h2></div>
+    <div class="list-head"><span class="lbl">Select a location</span></div>
+    ${cards}${un}
+    <button class="btn ghost" style="margin-top:12px" onclick="go('assign')">Assign players to locations</button>
+    <div style="height:20px"></div></div>
+  </div>${tabbar('roster')}`;
+}
+function viewAssign(){
+  if(!(AUTH && (AUTH.role==='coach'||AUTH.role==='admin'))) return viewRoster();
+  var sp=DB.sport;
+  var list=DB.players.filter(function(p){return p.sport===sp;});
+  var rows=list.map(function(p){ var opts=YFACILITIES.map(function(f){return `<option value="${f.k}" ${((p.facility||'')===f.k)?'selected':''}>${esc(f.name)}</option>`;}).join('');
+    return `<div class="p-card" style="cursor:default"><img class="p-photo" src="${p.photo}" alt=""><div class="p-info"><h3>${esc(p.first)} ${esc(p.last)}</h3>
+      <select onchange="assignFacility('${p.id}',this.value)" style="margin-top:5px;width:100%;background:var(--panel-2);color:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:13px">
+        <option value="" ${!p.facility?'selected':''}>— Unassigned —</option>${opts}</select></div></div>`;
+  }).join('') || `<div class="center-note">No ${sp} players.</div>`;
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="go('facilities')">${IC.back}</button>`)}
+    <div class="pad"><div class="hello"><p>Coach view</p><h2>ASSIGN <em>PLAYERS</em></h2></div>
+    <div class="list-head"><span class="lbl">Pick each player's location</span><span class="cnt">${list.length}</span></div>
+    ${rows}<div style="height:20px"></div></div>
+  </div>${tabbar('roster')}`;
+}
+var SET_EQUIP=null;
+function openSettings(){ if(!(AUTH&&(AUTH.role==='coach'||AUTH.role==='admin')))return; SET_EQUIP={}; YFACILITIES.forEach(function(f){ SET_EQUIP[f.k]=Object.assign({pelotero:false,colorBalls:true,smallBalls:true,skinnyBat:true,machine:true}, FAC_EQUIP[f.k]||{}); }); go('settings'); }
+function setEquip(fac,k){ if(!SET_EQUIP||!SET_EQUIP[fac])return; SET_EQUIP[fac][k]=(SET_EQUIP[fac][k]===false); render(); }
+async function settingsSave(){ if(!SET_EQUIP)return; var rows=Object.keys(SET_EQUIP).map(function(f){return {facility:f,equip:SET_EQUIP[f],updated_at:new Date().toISOString()};}); try{ var r=await SBc.from('youth_facility').upsert(rows); if(r.error){ toast('Save failed: '+(r.error.message||'')); return; } Object.keys(SET_EQUIP).forEach(function(f){ FAC_EQUIP[f]=Object.assign({},SET_EQUIP[f]); }); toast('Settings saved'); }catch(e){ toast('Save failed'); } }
+function viewSettings(){
+  if(!(AUTH&&(AUTH.role==='coach'||AUTH.role==='admin'))) return viewFacilities();
+  if(!SET_EQUIP) openSettings();
+  var head=`<tr><th style="text-align:left;padding:8px 10px">Location</th>${YEQUIP_KEYS.map(function(c){return `<th style="padding:8px 5px;font-size:9.5px">${esc(c.lbl)}</th>`;}).join('')}</tr>`;
+  var body=YFACILITIES.map(function(f){ var eq=SET_EQUIP[f.k]||{}; return `<tr style="border-top:1px solid var(--line)"><td style="padding:9px 10px;font-weight:700;white-space:nowrap;font-size:12.5px">${esc(f.name)}</td>${YEQUIP_KEYS.map(function(c){ var on=eq[c.k]!==false; return `<td style="padding:6px 5px;text-align:center"><button onclick="setEquip('${f.k}','${c.k}')" style="width:32px;height:32px;border-radius:9px;border:1.5px solid ${on?'var(--green)':'rgba(255,90,90,.5)'};background:${on?'rgba(131,245,44,.16)':'rgba(255,90,90,.10)'};color:${on?'var(--green)':'#ff7b6b'};font-size:14px;font-weight:800;cursor:pointer">${on?'✓':'✕'}</button></td>`;}).join('')}</tr>`;}).join('');
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="go('facilities')">${IC.back}</button>`)}
+    <div class="pad"><div class="hello"><p>Coach view</p><h2>EQUIPMENT <em>SETTINGS</em></h2></div>
+    <div class="center-note" style="text-align:left;margin:2px 0 12px;color:var(--grey);font-size:12px">Mark what each location has: green ✓ = available, red ✕ = not. Workouts adapt per location. A location with <b>Pelotero</b> runs the Pelotero tee + flip (1 tee drill from the list, no Front Toss); without it, the standard program.</div>
+    <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;min-width:430px;background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:12px"><thead style="background:rgba(131,245,44,.08);color:var(--green)">${head}</thead><tbody>${body}</tbody></table></div>
+    <button class="btn" style="margin-top:16px" onclick="settingsSave()">Save Changes</button><div style="height:24px"></div></div>
+  </div>`;
+}
+function yArea(n,title,drills,note){
+  var b = note?`<div class="muted" style="font-size:11.5px;margin-bottom:5px">${esc(note)}</div>`:'';
+  b += (drills&&drills.length)? drills.map(function(d){return `<div style="font-weight:700;margin:3px 0">• ${esc(d)}</div>`;}).join('') : '<div class="muted">—</div>';
+  return `<div class="pp-card"><div class="ph"><h4>${n}. ${esc(title)}</h4></div><div class="pb" style="display:block">${b}</div></div>`;
+}
+function viewGenWorkout(){
+  if(!(AUTH&&(AUTH.role==='coach'||AUTH.role==='admin'))) return viewFacilities();
+  var fac=DB.ctx.facility; var focusKey=DB.ctx.focus||'color';
+  var focusBtns=Y_FOCUS.map(function(f){return `<button class="seg ${focusKey===f.k?'on':''}" style="flex:0 0 auto;white-space:nowrap" onclick="go('genWorkout',{facility:'${fac}',focus:'${f.k}'})">${esc(f.name)}</button>`;}).join('');
+  var g=yGenWorkout(focusKey,fac);
+  var mach = g.eq && g.eq.machine===false;
+  var areas='';
+  if(g.test){
+    areas=`<div class="pp-card"><div class="ph"><h4>Test Week</h4></div><div class="pb" style="display:block"><div class="muted">Players run their assessment — the four unlock drills (Color Balls, 7 Ball, 3-3-3, Around the World). Log each in the player's profile.</div></div></div>`;
+  } else if(g.pelo){
+    areas = yArea(1,'Tee — Pelotero + 1',g.tee,'Run the Pelotero tee + flip (from the Pelotero app). Front Toss is covered by the Pelotero flip. Add the drill below.')
+      + yArea(2,'Side Toss',g.side)
+      + yArea(3,'Darts',g.darts)
+      + yArea(4, mach?'BP':'BP / Machine', g.bp);
+  } else {
+    areas = yArea(1,'Tee (3 drills)',g.tee)
+      + yArea(2,'Side Toss',g.side)
+      + yArea(3,'Front Toss',g.front)
+      + yArea(4,'Darts',g.darts)
+      + yArea(5, mach?'BP':'BP / Machine', g.bp);
+  }
+  return `<div class="scroll">
+    ${topbar(`<button class="icon-btn" onclick="go('roster',{facility:'${fac}'})">${IC.back}</button>`)}
+    <div class="pad"><div class="hello"><p>${esc(facilityName(fac))} · ${g.pelo?'Pelotero':'Standard'} program</p><h2>GENERATE <em>WORKOUT</em></h2></div>
+    <div class="center-note" style="text-align:left;margin:0 0 8px;color:var(--grey);font-size:12px">Pick this week's focus:</div>
+    <div class="sport-toggle" style="flex-wrap:wrap;gap:6px;justify-content:flex-start">${focusBtns}</div>
+    <div style="height:10px"></div>
+    ${areas}
+    <div style="height:20px"></div></div>
+  </div>`;
+}
+
+
 /* icon set */
 const IC={
   user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
@@ -724,6 +848,10 @@ function _renderView(){
   else if(v==='coaches') vp.innerHTML=viewCoaches();
   else if(v==='results') vp.innerHTML=viewResults();
   else if(v==='block') vp.innerHTML=viewBlock();
+  else if(v==='facilities') vp.innerHTML=viewFacilities();
+  else if(v==='assign') vp.innerHTML=viewAssign();
+  else if(v==='settings') vp.innerHTML=viewSettings();
+  else if(v==='genWorkout') vp.innerHTML=viewGenWorkout();
   bindDynamic();
   if(DB.view==='reward') startConfetti();
 }
@@ -789,13 +917,13 @@ async function logout(){ try{ if(SBc) await SBc.auth.signOut(); }catch(e){} AUTH
 /* ---------- shared header ---------- */
 function topbar(right){ return `<div class="topbar">
   <div class="brand">${logoSVG(36,false)}<h1>HPL <em>YOUTH</em></h1></div>
-  ${right||''}</div>`; }
+  <div style="display:flex;gap:8px;align-items:center"><button class="icon-btn" onclick="appRefresh()" title="Refresh" style="font-size:17px">↻</button>${right||''}</div></div>`; }
 
 /* ---------- ROSTER (coach) ---------- */
 function viewRoster(){
-  const sp=DB.sport;
+  const sp=DB.sport; const fac=DB.ctx.facility||null;
   const term=DB.search.toLowerCase();
-  const list=DB.players.filter(p=>p.sport===sp &&
+  const list=DB.players.filter(p=>p.sport===sp && (fac?((p.facility||'')===fac):true) &&
      (`${p.first} ${p.last}`.toLowerCase().includes(term)));
   const cards=list.map(p=>`
     <button class="p-card" onclick="go('profile',{playerId:'${p.id}',week:0})">
@@ -803,28 +931,30 @@ function viewRoster(){
       <div class="p-info"><h3>${esc(p.first)} ${esc(p.last)}</h3>
         <div class="meta">${p.age} yrs · ${esc(p.height)} · ${p.weight} lbs</div></div>
       <div class="hand ${p.hand==='S'?'sw':''}">${p.hand}</div>${IC.chev}
-    </button>`).join('') || `<div class="center-note">No ${sp} players match "${esc(DB.search)}".</div>`;
-
+    </button>`).join('') || `<div class="center-note">No ${sp} players ${fac?'at this location ':''}match "${esc(DB.search)}".</div>`;
+  const head = fac ? topbar(`<button class="icon-btn" onclick="go('facilities')">${IC.back}</button>`) : topbar(`<button class="icon-btn" onclick="logout()" title="Log out">${IC.user}</button>`);
   return `<div class="scroll">
-    ${topbar(`<button class="icon-btn" onclick="logout()" title="Log out">${IC.user}</button>`)}
+    ${head}
     <div class="sport-toggle">
       <button class="${sp==='baseball'?'on':''}" onclick="DB.sport='baseball';render()">${IC.ball} Baseball</button>
       <button class="${sp==='softball'?'on':''}" onclick="DB.sport='softball';render()">${IC.ball} Softball</button>
     </div>
     <div class="pad">
-      <div class="hello"><p>${esc(DB.user.name)} · Coach view</p><h2>MY <em>PLAYERS</em></h2></div>
+      <div class="hello"><p>${fac?esc(facilityName(fac)):esc(DB.user.name)} · Coach view</p><h2>${fac?esc(facilityName(fac)).toUpperCase():'MY <em>PLAYERS</em>'}</h2></div>
+      ${fac?`<button class="btn" style="margin:0 0 12px" onclick="go('genWorkout',{facility:'${fac}'})">⚡ Generate Workout</button>`:''}
       <div class="searchbar">${IC.search}
         <input id="search" placeholder="Search players by name…" value="${esc(DB.search)}" oninput="DB.search=this.value;liveRoster()">
       </div>
       <div class="list-head"><span class="lbl">${sp} Roster</span><span class="cnt">${list.length} PLAYER${list.length!==1?'S':''}</span></div>
       <div id="rosterList">${cards}</div>
+      ${fac?`<button class="btn ghost" style="margin-top:12px" onclick="go('assign')">Move / assign players</button>`:''}
     </div>
   </div>
   ${tabbar('roster')}`;
 }
 function liveRoster(){ // re-render only list to keep focus
-  const sp=DB.sport, term=DB.search.toLowerCase();
-  const list=DB.players.filter(p=>p.sport===sp && (`${p.first} ${p.last}`.toLowerCase().includes(term)));
+  const sp=DB.sport, term=DB.search.toLowerCase(); const fac=DB.ctx.facility||null;
+  const list=DB.players.filter(p=>p.sport===sp && (fac?((p.facility||'')===fac):true) && (`${p.first} ${p.last}`.toLowerCase().includes(term)));
   const el=$('#rosterList'); if(!el) return;
   el.innerHTML = list.map(p=>`
     <button class="p-card" onclick="go('profile',{playerId:'${p.id}',week:0})">
@@ -837,7 +967,7 @@ function liveRoster(){ // re-render only list to keep focus
 }
 
 function tabbar(active){
-  const act={roster:"go('roster')", coaches:"openCoaches()", me:"logout()"};
+  const act={roster:"go('facilities')", coaches:"openCoaches()", me:"logout()"};
   const t=(k,ic,lbl)=>`<button class="tab ${active===k?'on':''}" onclick="${act[k]||"toast('Coming soon')"}">${ic}<span>${lbl}</span></button>`;
   return `<div class="tabbar">
     ${t('roster',IC.home,'Roster')}${t('drills',IC.ball,'Drills')}${t('coaches',IC.user,'Coaches')}${t('me',IC.user,'Log out')}
@@ -1714,7 +1844,7 @@ function logAppError(err,where,fatal){
 }
 function safeHome(){
   try{
-    if(DB.user&&(DB.user.role==='coach'||DB.user.role==='admin')){ DB.view='roster'; DB.ctx={}; }
+    if(DB.user&&(DB.user.role==='coach'||DB.user.role==='admin')){ DB.view='facilities'; DB.ctx={}; }
     else if(DB.user){ var kid=DB.players&&DB.players[0]; if(kid){ DB.view='parentHome'; DB.ctx={playerId:kid.id}; } else { DB.view='addPlayer'; } }
     else { DB.view='login'; }
     _renderView();
