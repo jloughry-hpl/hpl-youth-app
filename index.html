@@ -719,7 +719,7 @@ function yGenWorkout(focusKey,fac){
   if(focusKey==='test') return {test:true,focus:foc,fac:fac,eq:eq,pelo:pelo};
   var tee = pelo ? [ Y_TEE[0][d%3] ] : [ Y_TEE[0][d%3], Y_TEE[1][d%3], Y_TEE[2][d%3] ];
   var side=yPickN(Y_SIDE,2,(2*d)%Y_SIDE.length,eq);
-  var front= pelo ? [] : yPickN(Y_FRONT,2,(2*d)%Y_FRONT.length,eq);
+  var front= yPickN(Y_FRONT,2,(2*d)%Y_FRONT.length,eq);
   var dpool=Y_DARTS[focusKey]||Y_DARTS.color;
   var focusDrill=Y_FOCUS_DRILL[focusKey]||foc.name;
   var darts=[focusDrill];
@@ -797,10 +797,11 @@ function viewGenWorkout(){
   if(g.test){
     areas=`<div class="pp-card"><div class="ph"><h4>Test Week</h4></div><div class="pb" style="display:block"><div class="muted">Players run their assessment — the four unlock drills (Color Balls, 7 Ball, 3-3-3, Around the World). Log each in the player's profile.</div></div></div>`;
   } else if(g.pelo){
-    areas = yArea(1,'Tee — Pelotero + 1',g.tee,'Run the Pelotero tee + flip (from the Pelotero app). Front Toss is covered by the Pelotero flip. Add the drill below.')
+    areas = yArea(1,'Tee — Pelotero + 1',g.tee,'Run the Pelotero tee + flip (from the Pelotero app). Add the drill below.')
       + yArea(2,'Side Toss',g.side)
-      + yArea(3,'Darts',g.darts)
-      + yArea(4, mach?'BP':'BP / Machine', g.bp);
+      + yArea(3,'Front Toss / Flip — Pelotero',g.front,'Run these on the Pelotero as flips.')
+      + yArea(4,'Darts',g.darts)
+      + yArea(5, mach?'BP':'BP / Machine', g.bp);
   } else {
     areas = yArea(1,'Tee (3 drills)',g.tee)
       + yArea(2,'Side Toss',g.side)
