@@ -813,6 +813,29 @@ function yRenderAreas(g){
     + yArea(4,'Darts',g.darts)
     + yArea(5, mach?'BP':'BP / Machine', g.bp);
 }
+/* ===== reveal sound (Web Audio, no files) ===== */
+var wkAC=null;
+function wkAudio(){ if(wkAC) return wkAC; try{ wkAC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ wkAC=null; } return wkAC; }
+function wkResume(){ var ac=wkAudio(); if(ac&&ac.state==='suspended'){ try{ ac.resume(); }catch(e){} } }
+function wkBeep(freq,dur,type,vol,when){
+  var ac=wkAudio(); if(!ac) return;
+  try{ var t0=ac.currentTime+(when||0);
+    var o=ac.createOscillator(), g=ac.createGain();
+    o.type=type||'square'; o.frequency.setValueAtTime(freq,t0);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(vol||0.2,t0+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+dur+0.02);
+  }catch(e){}
+}
+function wkTick(prog){ wkBeep(600+prog*640,0.05,'square',0.14); }
+function wkWin(){
+  wkResume();
+  var notes=[523.25,659.25,783.99,1046.50];
+  notes.forEach(function(n,i){ wkBeep(n,0.22,'triangle',0.2,i*0.12); });
+  wkBeep(1568,0.35,'sine',0.13,0.5);
+  wkBeep(2093,0.3,'sine',0.1,0.62);
+}
 function ensureRevealCSS(){
   if(document.getElementById('wkRevealCSS')) return;
   var st=document.createElement('style'); st.id='wkRevealCSS';
@@ -823,7 +846,7 @@ function ensureRevealCSS(){
   document.head.appendChild(st);
 }
 function playWorkoutReveal(wonKey, done){
-  ensureRevealCSS();
+  ensureRevealCSS(); wkResume();
   var won=prizeByKey(wonKey);
   var ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at 50% 38%, #16261a, #050605 72%);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden';
@@ -837,10 +860,10 @@ function playWorkoutReveal(wonKey, done){
   var idx=0;
   function paint(pr){ reel.innerHTML='<div style="font-size:52px">'+pr.emoji+'</div><div style="font-size:28px;margin-top:4px">'+pr.name+'</div>'; }
   function step(){
-    paint(seq[idx]); idx++;
+    paint(seq[idx]); wkTick(idx/seq.length); idx++;
     if(idx<seq.length){ var t=55+Math.pow(idx/seq.length,3)*430; setTimeout(step,t); }
     else{
-      var box=ov.querySelector('#wkBox'); box.style.animation='wkShake .35s ease 2';
+      var box=ov.querySelector('#wkBox'); box.style.animation='wkShake .35s ease 2'; wkWin();
       var msg=ov.querySelector('#wkMsg');
       msg.innerHTML='<div style="color:var(--green);font-family:\'Barlow Semi Condensed\',sans-serif;font-weight:800;letter-spacing:1px;font-size:22px">🎉 YOU WON 🎉</div>'
         +'<div style="color:#fff;font-family:\'Anton\',sans-serif;font-style:italic;font-size:40px;margin-top:2px">'+won.name+'</div>'
