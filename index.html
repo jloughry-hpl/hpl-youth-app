@@ -546,7 +546,7 @@ async function enterApp(user){
 async function cloudLoadPlayers(){
   try{ const {data,error}=await SBc.from('players').select('id,state').order('created_at');
     if(error){ console.warn(error); return []; }
-    return (data||[]).filter(r=>r&&r.state).map(r=>Object.assign({},r.state,{id:r.id}));
+    return (data||[]).filter(r=>r&&r.state).map(r=>{var pp=Object.assign({},r.state,{id:r.id}); ensureSidesY(pp); return pp;});
   }catch(e){ console.warn(e); return []; }
 }
 async function cloudSavePlayer(p){
@@ -714,21 +714,152 @@ function yOk(name,eq){ var need=Y_NEEDS[name]; return !need || eq[need]!==false;
 function yDayIdx(){ return Math.floor(Date.now()/86400000); }
 function yPickN(pool,n,start,eq){ var out=[],i=0,L=pool.length; while(out.length<n && i<L*2){ var nm=pool[(start+i)%L]; i++; if(eq && !yOk(nm,eq)) continue; if(out.indexOf(nm)<0) out.push(nm); } i=0; while(out.length<n && i<L){ var nm2=pool[(start+i)%L]; if(out.indexOf(nm2)<0) out.push(nm2); i++; } return out; }
 function yGenWorkout(focusKey,fac){
-  var eq=yEquip(fac); var d=yDayIdx(); var pelo=eq.pelotero;
+  var eq=yEquip(fac); var pelo=eq.pelotero;
   var foc=Y_FOCUS.filter(function(f){return f.k===focusKey;})[0]||Y_FOCUS[1];
   if(focusKey==='test') return {test:true,focus:foc,fac:fac,eq:eq,pelo:pelo};
-  var tee = pelo ? [ Y_TEE[0][d%3] ] : [ Y_TEE[0][d%3], Y_TEE[1][d%3], Y_TEE[2][d%3] ];
-  var side=yPickN(Y_SIDE,2,(2*d)%Y_SIDE.length,eq);
-  var front= yPickN(Y_FRONT,2,(2*d)%Y_FRONT.length,eq);
+  var tee = pelo ? [ Y_TEE[0][yRand(3)] ] : [ Y_TEE[0][yRand(3)], Y_TEE[1][yRand(3)], Y_TEE[2][yRand(3)] ];
+  var side=yPickRand(Y_SIDE,2,eq);
+  var front=yPickRand(Y_FRONT,2,eq);
   var dpool=Y_DARTS[focusKey]||Y_DARTS.color;
   var focusDrill=Y_FOCUS_DRILL[focusKey]||foc.name;
   var darts=[focusDrill];
-  var rest=yPickN(dpool,2,(2*d)%dpool.length,eq);
+  var rest=yPickRand(dpool,2,eq);
   for(var di=0; di<rest.length && darts.length<2; di++){ if(darts.indexOf(rest[di])<0) darts.push(rest[di]); }
   if(darts.length<2){ darts.push(dpool[0]); }
-  var bp=yPickN(Y_BP,1,d%Y_BP.length,eq);
+  var bp=yPickRand(Y_BP,1,eq);
   return { test:false, focus:foc, fac:fac, eq:eq, pelo:pelo, tee:tee, side:side, front:front, darts:darts, bp:bp };
 }
+
+/* ===== SWITCH-HITTER (Youth) ===== */
+function actSideY(p){ return (p&&p.activeSide)||'R'; }
+function sideLabelY(s){ return s==='L'?'LH':'RH'; }
+function sideWordY(s){ return s==='L'?'Left-Handed':'Right-Handed'; }
+function emptySideY(){ return { levels:{colorBalls:1,sevenBall:1,threes:1,atw:1}, assessments:[assess(0,new Date().toISOString().slice(0,10),0)], maxEV:0, avgEV:0, maxDist:0, avgDist:0 }; }
+function ensureSidesY(p){
+  if(!p||p.hand!=='S') return;
+  if(!p.activeSide) p.activeSide='R';
+  if(!p.alt||typeof p.alt!=='object') p.alt=emptySideY();
+  if(!p.alt.levels) p.alt.levels={colorBalls:1,sevenBall:1,threes:1,atw:1};
+  if(!p.alt.assessments||!p.alt.assessments.length) p.alt.assessments=[assess(0,new Date().toISOString().slice(0,10),0)];
+}
+function switchSideY(p, side){
+  if(!p||p.hand!=='S') return; ensureSidesY(p);
+  if(p.activeSide===side) return;
+  var cur={ levels:p.levels, assessments:p.assessments, maxEV:p.maxEV, avgEV:p.avgEV, maxDist:p.maxDist, avgDist:p.avgDist };
+  var alt=p.alt||emptySideY();
+  p.levels=alt.levels; p.assessments=alt.assessments;
+  p.maxEV=alt.maxEV||0; p.avgEV=alt.avgEV||0; p.maxDist=alt.maxDist||0; p.avgDist=alt.avgDist||0;
+  p.alt=cur; p.activeSide=side;
+}
+function selSideY(side){ var p=curPlayer(); if(!p) return; switchSideY(p,side); cloudSavePlayer(p); render(); }
+function sideToggleBarY(p, label){
+  if(!p||p.hand!=='S') return '';
+  var a=actSideY(p);
+  function b(s,w){ return `<button type="button" onclick="selSideY('${s}')" style="flex:1;padding:12px 8px;border-radius:11px;font-family:'Barlow Semi Condensed';font-weight:700;font-size:14px;cursor:pointer;border:1.5px solid ${a===s?'var(--green)':'var(--line)'};background:${a===s?'var(--green)':'var(--panel-2)'};color:${a===s?'#0a0b0a':'#cfd4cb'}">${w}</button>`; }
+  return `${label?`<div class="center-note" style="text-align:left;margin:4px 16px 2px;color:var(--grey);font-size:12px">${label}</div>`:''}<div style="display:flex;gap:8px;margin:0 16px 10px">${b('R','Right-Handed')}${b('L','Left-Handed')}</div>`;
+}
+function rapTilesY(o){
+  return `<div class="rap-numbers">
+    ${rapStatTile('Max Exit Velo',o.maxEV,'mph')}
+    ${rapStatTile('Avg Exit Velo',o.avgEV,'mph')}
+    ${rapStatTile('Max Distance',o.maxDist,'ft')}
+    ${rapStatTile('Avg Distance',o.avgDist,'ft')}
+  </div>`;
+}
+function sideObjY(p, side){ return (p.hand==='S') ? (side===actSideY(p) ? p : (p.alt||{})) : p; }
+function profileRapsodoY(p){
+  var coach = AUTH && (AUTH.role==='coach'||AUTH.role==='admin');
+  if(p.hand!=='S'){
+    return `<div class="section-lbl">Rapsodo Numbers ${coach?`<span class="link" onclick="editRap()">✎ Edit</span>`:''}</div>`+rapTilesY(p);
+  }
+  ensureSidesY(p);
+  return `<div class="section-lbl">Rapsodo Numbers · Right-Handed ${coach?`<span class="link" onclick="editRapSide('R')">✎ Edit</span>`:''}</div>`+rapTilesY(sideObjY(p,'R'))
+       +`<div class="section-lbl">Rapsodo Numbers · Left-Handed ${coach?`<span class="link" onclick="editRapSide('L')">✎ Edit</span>`:''}</div>`+rapTilesY(sideObjY(p,'L'));
+}
+function editRapSide(side){ var p=curPlayer(); if(p&&p.hand==='S'&&actSideY(p)!==side) switchSideY(p,side); editRap(); }
+
+/* ===== GAMIFIED GENERATE WORKOUT (Youth) ===== */
+function yRand(n){ return Math.floor(Math.random()*n); }
+function yPickRand(pool, n, eq){
+  var elig=pool.filter(function(nm){ return !eq||yOk(nm,eq); });
+  if(!elig.length) elig=pool.slice();
+  for(var i=elig.length-1;i>0;i--){ var j=yRand(i+1); var t=elig[i]; elig[i]=elig[j]; elig[j]=t; }
+  return elig.slice(0,Math.min(n,elig.length));
+}
+var Y_PRIZES=[ {k:'color',name:'Color Balls',emoji:'🎨'}, {k:'atw',name:'Around the World',emoji:'🌎'}, {k:'sevenball',name:'7 Ball',emoji:'🎱'}, {k:'threes',name:'3-3-3',emoji:'🔢'} ];
+function prizeByKey(k){ return Y_PRIZES.filter(function(x){return x.k===k;})[0]||Y_PRIZES[0]; }
+function openGenFresh(fac){ DB.view='genWorkout'; DB.ctx=Object.assign({},DB.ctx,{facility:fac,rolled:null,manualOpen:false}); render(); var vp=$('#vp'); if(vp) vp.scrollTop=0; }
+function toggleManual(){ DB.ctx.manualOpen=!DB.ctx.manualOpen; render(); }
+function pickManual(fac,key){ DB.ctx.rolled={focus:key, w:yGenWorkout(key,fac)}; DB.ctx.manualOpen=false; render(); var vp=$('#vp'); if(vp) vp.scrollTop=0; }
+function rollWorkout(fac){
+  var keys=['color','atw','sevenball','threes'];
+  var won=keys[yRand(keys.length)];
+  playWorkoutReveal(won, function(){ DB.ctx.rolled={focus:won, w:yGenWorkout(won,fac)}; render(); var vp=$('#vp'); if(vp) vp.scrollTop=0; });
+}
+function yRenderAreas(g){
+  var mach = g.eq && g.eq.machine===false;
+  if(g.test){
+    return `<div class="pp-card"><div class="ph"><h4>Test Week</h4></div><div class="pb" style="display:block"><div class="muted">Players run their assessment — the four unlock drills (Color Balls, 7 Ball, 3-3-3, Around the World). Log each in the player's profile.</div></div></div>`;
+  } else if(g.pelo){
+    return yArea(1,'Tee — Pelotero + 1',g.tee,'Run the Pelotero tee + flip (from the Pelotero app). Add the drill below.')
+      + yArea(2,'Side Toss',g.side)
+      + yArea(3,'Front Toss / Flip — Pelotero',g.front,'Run these on the Pelotero as flips.')
+      + yArea(4,'Darts',g.darts)
+      + yArea(5, mach?'BP':'BP / Machine', g.bp);
+  }
+  return yArea(1,'Tee (3 drills)',g.tee)
+    + yArea(2,'Side Toss',g.side)
+    + yArea(3,'Front Toss',g.front)
+    + yArea(4,'Darts',g.darts)
+    + yArea(5, mach?'BP':'BP / Machine', g.bp);
+}
+function ensureRevealCSS(){
+  if(document.getElementById('wkRevealCSS')) return;
+  var st=document.createElement('style'); st.id='wkRevealCSS';
+  st.textContent='@keyframes wkPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}'
+    +'@keyframes wkShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}'
+    +'@keyframes wkFall{0%{transform:translateY(-10vh) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:1}}'
+    +'.wkCf{position:absolute;top:-10vh;width:9px;height:14px;border-radius:2px;animation:wkFall linear forwards}';
+  document.head.appendChild(st);
+}
+function playWorkoutReveal(wonKey, done){
+  ensureRevealCSS();
+  var won=prizeByKey(wonKey);
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at 50% 38%, #16261a, #050605 72%);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden';
+  ov.innerHTML='<div style="color:var(--green);font-family:\'Barlow Semi Condensed\',sans-serif;font-weight:800;letter-spacing:2px;text-transform:uppercase;font-size:15px;margin-bottom:18px">Spinning up your workout…</div>'
+    +'<div id="wkBox" style="width:84%;max-width:360px;height:148px;border:3px solid var(--green);border-radius:20px;background:#0a0d0a;box-shadow:0 0 46px rgba(131,245,44,.4);display:flex;align-items:center;justify-content:center;overflow:hidden">'
+    +'<div id="wkReel" style="text-align:center;color:#fff;font-family:\'Anton\',sans-serif;font-style:italic;line-height:1.05"></div></div>'
+    +'<div id="wkMsg" style="opacity:0;margin-top:24px;text-align:center;transition:opacity .35s;padding:0 20px"></div>';
+  document.body.appendChild(ov);
+  var reel=ov.querySelector('#wkReel');
+  var seq=[]; for(var i=0;i<18;i++){ seq.push(Y_PRIZES[yRand(4)]); } seq.push(won);
+  var idx=0;
+  function paint(pr){ reel.innerHTML='<div style="font-size:52px">'+pr.emoji+'</div><div style="font-size:28px;margin-top:4px">'+pr.name+'</div>'; }
+  function step(){
+    paint(seq[idx]); idx++;
+    if(idx<seq.length){ var t=55+Math.pow(idx/seq.length,3)*430; setTimeout(step,t); }
+    else{
+      var box=ov.querySelector('#wkBox'); box.style.animation='wkShake .35s ease 2';
+      var msg=ov.querySelector('#wkMsg');
+      msg.innerHTML='<div style="color:var(--green);font-family:\'Barlow Semi Condensed\',sans-serif;font-weight:800;letter-spacing:1px;font-size:22px">🎉 YOU WON 🎉</div>'
+        +'<div style="color:#fff;font-family:\'Anton\',sans-serif;font-style:italic;font-size:40px;margin-top:2px">'+won.name+'</div>'
+        +'<div style="color:#bde89a;font-family:\'Barlow Semi Condensed\',sans-serif;font-weight:700;margin-top:4px;font-size:16px">workout!</div>';
+      msg.style.opacity='1'; msg.style.animation='wkPop .5s ease';
+      wkConfetti(ov);
+      setTimeout(function(){ ov.style.transition='opacity .45s'; ov.style.opacity='0'; setTimeout(function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); if(done) done(); }, 460); }, 1700);
+    }
+  }
+  step();
+}
+function wkConfetti(ov){
+  var cols=['#83f52c','#5bc70e','#ffffff','#ffb020','#3d7bff','#e23b3b'];
+  var h='';
+  for(var i=0;i<60;i++){ var l=yRand(100), dl=(yRand(80)/100), dur=1.6+yRand(140)/100, c=cols[i%cols.length], w=6+yRand(8);
+    h+='<span class="wkCf" style="left:'+l+'%;width:'+w+'px;height:'+Math.round(w*1.5)+'px;background:'+c+';animation-delay:'+dl+'s;animation-duration:'+dur+'s"></span>'; }
+  var cf=document.createElement('div'); cf.style.cssText='position:absolute;inset:0;pointer-events:none'; cf.innerHTML=h; ov.appendChild(cf);
+}
+
 
 /* ---- coach views ---- */
 function viewFacilities(){
@@ -789,34 +920,34 @@ function yArea(n,title,drills,note){
 function setFocus(fac,k){ DB.view='genWorkout'; DB.ctx=Object.assign({},DB.ctx,{facility:fac,focus:k}); render(); var vp=$('#vp'); if(vp) vp.scrollTop=0; }
 function viewGenWorkout(){
   if(!(AUTH&&(AUTH.role==='coach'||AUTH.role==='admin'))) return viewFacilities();
-  var fac=DB.ctx.facility; var focusKey=DB.ctx.focus||'color';
-  var focusBtns=Y_FOCUS.map(function(f){ var on=focusKey===f.k; return `<button type="button" onclick="setFocus('${fac}','${f.k}')" style="flex:1 1 30%;min-width:98px;padding:13px 8px;border-radius:12px;font-family:'Barlow Semi Condensed';font-weight:700;font-size:14px;cursor:pointer;transition:all .12s;border:1.5px solid ${on?'var(--green)':'var(--line)'};background:${on?'var(--green)':'var(--panel-2)'};color:${on?'#0a0b0a':'#cfd4cb'}">${esc(f.name)}</button>`;}).join('');
-  var g=yGenWorkout(focusKey,fac);
-  var mach = g.eq && g.eq.machine===false;
-  var areas='';
-  if(g.test){
-    areas=`<div class="pp-card"><div class="ph"><h4>Test Week</h4></div><div class="pb" style="display:block"><div class="muted">Players run their assessment — the four unlock drills (Color Balls, 7 Ball, 3-3-3, Around the World). Log each in the player's profile.</div></div></div>`;
-  } else if(g.pelo){
-    areas = yArea(1,'Tee — Pelotero + 1',g.tee,'Run the Pelotero tee + flip (from the Pelotero app). Add the drill below.')
-      + yArea(2,'Side Toss',g.side)
-      + yArea(3,'Front Toss / Flip — Pelotero',g.front,'Run these on the Pelotero as flips.')
-      + yArea(4,'Darts',g.darts)
-      + yArea(5, mach?'BP':'BP / Machine', g.bp);
+  var fac=DB.ctx.facility;
+  var rolled=DB.ctx.rolled;
+  var manualBtns=Y_FOCUS.map(function(f){ return `<button type="button" onclick="pickManual('${fac}','${f.k}')" style="flex:1 1 30%;min-width:96px;padding:11px 8px;border-radius:11px;font-family:'Barlow Semi Condensed';font-weight:700;font-size:13px;cursor:pointer;border:1.5px solid var(--line);background:var(--panel-2);color:#cfd4cb">${esc(f.name)}</button>`; }).join('');
+  var manual=`<div style="margin:16px 16px 0">
+    <div onclick="toggleManual()" style="cursor:pointer;color:var(--grey);font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px">${DB.ctx.manualOpen?'▾':'▸'} Coach: choose manually (incl. Test Week)</div>
+    ${DB.ctx.manualOpen?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">${manualBtns}</div>`:''}
+  </div>`;
+  var body;
+  if(!rolled){
+    body=`<div style="text-align:center;padding:16px 16px 0">
+      <div style="font-size:48px;margin-bottom:6px">🎲</div>
+      <div class="muted" style="font-size:13.5px;margin-bottom:16px">Tap the button and see what workout you win!</div>
+      <div style="padding:0 16px"><button type="button" onclick="rollWorkout('${fac}')" style="width:100%;padding:22px;border:none;border-radius:16px;background:linear-gradient(180deg,var(--green),#5bc70e);color:#06210a;font-family:'Anton',sans-serif;font-style:italic;font-size:25px;letter-spacing:.5px;cursor:pointer;box-shadow:0 6px 24px rgba(131,245,44,.38)">GENERATE WORKOUT</button></div>
+    </div>`+manual;
   } else {
-    areas = yArea(1,'Tee (3 drills)',g.tee)
-      + yArea(2,'Side Toss',g.side)
-      + yArea(3,'Front Toss',g.front)
-      + yArea(4,'Darts',g.darts)
-      + yArea(5, mach?'BP':'BP / Machine', g.bp);
+    var g=rolled.w;
+    var areas=yRenderAreas(g);
+    var wonName=(rolled.focus==='test')?'Test Week':((Y_FOCUS.filter(function(f){return f.k===rolled.focus;})[0]||{}).name||'Workout');
+    var banner=(rolled.focus==='test')?'':`<div style="margin:0 16px 12px;text-align:center;background:linear-gradient(180deg,rgba(131,245,44,.16),rgba(131,245,44,.05));border:1.5px solid var(--green);border-radius:14px;padding:12px"><div style="font-family:'Barlow Semi Condensed',sans-serif;font-weight:800;color:var(--green);letter-spacing:1px;font-size:13px">🎉 TODAY YOU GOT 🎉</div><div style="font-family:'Anton',sans-serif;font-style:italic;font-size:27px;color:#fff;margin-top:2px">${esc(wonName)}</div></div>`;
+    body=banner+areas
+      +`<div class="pad"><button type="button" onclick="rollWorkout('${fac}')" style="width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(180deg,var(--green),#5bc70e);color:#06210a;font-family:'Anton',sans-serif;font-style:italic;font-size:18px;cursor:pointer">🎲 SPIN AGAIN</button></div>`
+      +manual;
   }
   return `<div class="scroll">
     ${topbar(`<button class="icon-btn" onclick="go('roster',{facility:'${fac}'})">${IC.back}</button>`)}
-    <div class="pad"><div class="hello"><p>${esc(facilityName(fac))} · ${g.pelo?'Pelotero':'Standard'} program</p><h2>GENERATE <em>WORKOUT</em></h2></div>
-    <div class="center-note" style="text-align:left;margin:0 0 8px;color:var(--grey);font-size:12px">Pick this week's focus:</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 16px 2px">${focusBtns}</div>
-    <div style="height:10px"></div>
-    ${areas}
-    <div style="height:20px"></div></div>
+    <div class="pad"><div class="hello"><p>${esc(facilityName(fac))} · ${(rolled&&rolled.w&&rolled.w.pelo)?'Pelotero':'Standard'} program</p><h2>GENERATE <em>WORKOUT</em></h2></div></div>
+    ${body}
+    <div style="height:22px"></div>
   </div>`;
 }
 
@@ -956,7 +1087,7 @@ function viewRoster(){
     </div>
     <div class="pad">
       <div class="hello"><p>${fac?esc(facilityName(fac)):esc(DB.user.name)} · Coach view</p><h2>${fac?esc(facilityName(fac)).toUpperCase():'MY <em>PLAYERS</em>'}</h2></div>
-      ${fac?`<button class="btn" style="margin:0 0 12px" onclick="go('genWorkout',{facility:'${fac}'})">⚡ Generate Workout</button>`:''}
+      ${fac?`<button class="btn" style="margin:0 0 12px" onclick="openGenFresh('${fac}')">⚡ Generate Workout</button>`:''}
       <div class="searchbar">${IC.search}
         <input id="search" placeholder="Search players by name…" value="${esc(DB.search)}" oninput="DB.search=this.value;liveRoster()">
       </div>
@@ -1127,12 +1258,13 @@ function viewProfile(){
     </div>
     <p class="join"><em>Training with HPL Youth since <b>${fmtDate(p.join)}</b></em></p>
 
-    ${rapNumbersCard(p)}
+    ${RAPE?rapNumbersCard(p):profileRapsodoY(p)}
 
     <div class="section-lbl">Test Blocks — tap a block for results</div>
     ${blockCarousel(p)}
 
-    <div class="section-lbl">Record Test — Weeks ${blockLabel(weekIdx())} (current block)</div>
+    ${sideToggleBarY(p,'Logging &amp; viewing tests for:')}
+    <div class="section-lbl">Record Test${p.hand==='S'?' · '+sideWordY(actSideY(p)):''} — Weeks ${blockLabel(weekIdx())} (current block)</div>
     ${drillCards}
     ${(AUTH&&(AUTH.role==='coach'||AUTH.role==='admin'))?`<div style="margin:18px 16px 0"><button type="button" class="btn" style="background:var(--red);border-color:var(--red);color:#fff;width:100%" onclick="deletePlayer('${p.id}')">Delete Player</button><div class="muted" style="font-size:11px;text-align:center;margin-top:6px">Coaches only · permanently removes this player and their data</div></div>`:''}
     <div style="height:24px"></div>
@@ -1160,7 +1292,7 @@ function rapStatTile(k,v,unit){ return `<div class="rn"><div class="k">${k}</div
 function rapNumbersCard(p){
   const coach = AUTH && (AUTH.role==='coach'||AUTH.role==='admin');
   if(RAPE){
-    return `<div class="section-lbl">Rapsodo Numbers</div>
+    return `<div class="section-lbl">Rapsodo Numbers${p.hand==='S'?' · '+sideWordY(actSideY(p)):''}</div>
     <div class="rap-numbers">
       <div class="rn"><div class="k">Max Exit Velo</div><input type="number" inputmode="decimal" value="${RAPE.maxEV}" oninput="RAPE.maxEV=this.value" placeholder="mph"></div>
       <div class="rn"><div class="k">Avg Exit Velo</div><input type="number" inputmode="decimal" value="${RAPE.avgEV}" oninput="RAPE.avgEV=this.value" placeholder="mph"></div>
